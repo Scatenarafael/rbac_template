@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rbac_db
+    ports:
+      - "5433:5432"
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+  
+  # redis:
+  #   image: redis:7
+  #   ports:
+  #     - "6379:6379"
+
+  #   restart: always
+
+
+  # flower:
+  #     image: mher/flower
+  #     container_name: flower
+  #     restart: always
+  #     depends_on:
+  #       - redis
+  #     restart: always
+  #     ports:
+  #       - "5555:5555"  # Interface web do Flower
+  #     expose:
+  #       - 5555
+  #     environment:
+  #       - CELERY_BROKER_URL=redis://redis:6379/0
+  #     command: ["celery", "flower", "--broker=redis://redis:6379/0"]
+
+
+volumes:
+  postgres_data:

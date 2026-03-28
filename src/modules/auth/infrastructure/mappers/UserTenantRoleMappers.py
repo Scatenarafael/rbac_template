@@ -1,0 +1,23 @@
+from uuid import UUID
+
+from src.modules.auth.domain.entities import UserTenantRole
+from src.modules.auth.infrastructure.models.UserTenantRole import UserTenantRoleModel
+
+
+class UserTenantRoleMapper:
+    @staticmethod
+    def to_entity(model: UserTenantRoleModel) -> UserTenantRole:
+        return UserTenantRole(
+            id=UUID(str(model.id)),
+            fk_user_tenant_id=UUID(str(model.fk_user_tenant_id)),
+            fk_role_id=UUID(str(model.fk_role_id)),
+        )
+
+    @staticmethod
+    def from_entity(entity: UserTenantRole) -> UserTenantRoleModel:
+
+        return UserTenantRoleModel(
+            id=entity.id,
+            fk_user_tenant_id=entity.fk_user_tenant_id,
+            fk_role_id=entity.fk_role_id,
+        )
