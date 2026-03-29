@@ -1,3 +1,3 @@
-from .UseCaseFactory import UseCaseFactory
+from .UseCaseFactory import UserUseCaseFactory
 
-__all__ = ["UseCaseFactory"]
+__all__ = ["UserUseCaseFactory"]

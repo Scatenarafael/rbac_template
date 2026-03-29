@@ -98,3 +98,10 @@ class UserRepository(IUserRepository):
         await self._session.refresh(user)
 
         return UserMapper.to_entity(user)
+
+    async def list(self) -> list[User]:
+        stmt = select(UserModel)  # type: ignore
+        result = await self._session.execute(stmt)
+        users = result.scalars().all()
+
+        return [UserMapper.to_entity(user) for user in users]

@@ -10,7 +10,10 @@ from src.core.config.config import get_settings
 from src.core.logging.config import configure_logging
 from src.core.logging.http import RequestContextMiddleware, register_exception_handlers
 from src.core.logging.logger import get_logger
-from src.modules.auth.presentation.routers import users_router
+from src.modules.auth.presentation.middlewares.auth_middleware import AuthMiddleware
+from src.modules.auth.presentation.middlewares.request_id import RequestIdMiddleware
+from src.modules.auth.presentation.middlewares.request_logging import RequestLoggingMiddleware
+from src.modules.auth.presentation.routers import auth_router, users_router
 
 origins = [
     "http://localhost",
@@ -59,8 +62,16 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.add_middleware(RequestLoggingMiddleware)
+
+    app.add_middleware(AuthMiddleware)
+
+    # Middleware (muito comum no mercado): request_id em toda request/response
+    app.add_middleware(RequestIdMiddleware)
+
     register_exception_handlers(app)
 
     app.include_router(users_router)
+    app.include_router(auth_router)
 
     return app

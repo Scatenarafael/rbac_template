@@ -15,7 +15,7 @@ class RefreshToken:
     revoked: bool = False
     replaced_by: Optional[str] = None
 
-    fk_user_tenant_id: uuid.UUID | None = None
+    fk_user_id: uuid.UUID | None = None
 
     def revoke(self, *, replaced_by: str | None = None) -> None:
         self.revoked = True

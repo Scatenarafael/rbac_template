@@ -27,3 +27,11 @@ class RegisterUserUseCase:
         user = await self.user_repository.create(user)
 
         return user
+
+
+class ListUserUseCase:
+    def __init__(self, user_repository: IUserRepository):
+        self.user_repository = user_repository
+
+    async def execute(self):
+        return await self.user_repository.list()

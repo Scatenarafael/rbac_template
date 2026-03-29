@@ -12,6 +12,10 @@ class IRepositoryBase(ABC, Generic[TEntity, TId]):
         self._session = session
 
     @abstractmethod
+    async def list(self) -> list[TEntity]:
+        pass
+
+    @abstractmethod
     async def create(self, data: TEntity) -> TEntity:
         pass
 

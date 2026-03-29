@@ -1,3 +1,3 @@
-from .RegisterUserUseCase import RegisterUserUseCase
+from .UserUseCase import RegisterUserUseCase
 
-__all__ = ["RegisterUserUseCase"]
+__all__ = ["UserUseCase"]

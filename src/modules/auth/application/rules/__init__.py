@@ -1,3 +1,3 @@
-from .RegisterUserRules import RegisterUserRules
+from .UserRules import RegisterUserRules
 
-__all__ = ["RegisterUserRules"]
+__all__ = ["UserRules"]

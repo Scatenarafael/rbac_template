@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, Column, DateTime, String
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from .UserTenant import UserTenantModel
+    from .User import UserModel
 
 
 def utcnow() -> datetime:
@@ -40,14 +40,14 @@ class RefreshTokenModel(SQLModel, table=True):
         sa_column=Column(String(255), nullable=True),
     )
 
-    fk_user_tenant_id: uuid.UUID | None = Field(
+    fk_user_id: uuid.UUID | None = Field(
         default=None,
-        foreign_key="user_tenants.id",
+        foreign_key="users.id",
         index=True,
         nullable=True,
     )
 
-    user_tenant: Optional["UserTenantModel"] = Relationship(back_populates="refresh_tokens")
+    user: Optional["UserModel"] = Relationship(back_populates="refresh_tokens")
 
     def revoke(self, *, replaced_by: str | None = None) -> None:
         self.revoked = True

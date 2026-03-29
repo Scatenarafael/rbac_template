@@ -9,7 +9,6 @@ from sqlmodel import Field, Relationship, SQLModel
 from .Base import new_uuid
 
 if TYPE_CHECKING:
-    from .RefreshToken import RefreshTokenModel
     from .Tenant import TenantModel
     from .User import UserModel
     from .UserTenantRole import UserTenantRoleModel
@@ -25,5 +24,4 @@ class UserTenantModel(SQLModel, table=True):
 
     user: "UserModel" = Relationship(back_populates="user_tenants")
     tenant: "TenantModel" = Relationship(back_populates="user_tenants")
-    refresh_tokens: list["RefreshTokenModel"] = Relationship(back_populates="user_tenant")
     user_tenant_roles: list["UserTenantRoleModel"] = Relationship(back_populates="user_tenant")

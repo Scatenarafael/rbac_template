@@ -13,7 +13,7 @@ class IRefreshTokenRepository(ABC):
         self._session = session
 
     @abstractmethod
-    async def save_refresh_token(self, jti: UUID, fk_user_tenant_id: UUID, token_hash: str, expires_at: datetime) -> Optional[RefreshToken]:
+    async def save_refresh_token(self, jti: UUID, fk_user_id: UUID, token_hash: str, expires_at: datetime) -> Optional[RefreshToken]:
         pass
 
     @abstractmethod
@@ -29,5 +29,5 @@ class IRefreshTokenRepository(ABC):
         pass
 
     @abstractmethod
-    async def revoke_all_for_user_tenant(self, fk_user_tenant_id: UUID) -> None:
+    async def revoke_all_for_user(self, fk_user_id: UUID) -> None:
         pass

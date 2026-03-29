@@ -7,6 +7,8 @@ from uuid import UUID
 from sqlalchemy import Column, DateTime, String, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
+from src.modules.auth.infrastructure.models.RefreshToken import RefreshTokenModel
+
 from .Base import new_uuid, utcnow
 
 if TYPE_CHECKING:
@@ -34,3 +36,4 @@ class UserModel(SQLModel, table=True):
 
     user_tenants: list["UserTenantModel"] = Relationship(back_populates="user")
     link_user_tenant_requests: list["LinkUserTenantRequestModel"] = Relationship(back_populates="user")
+    refresh_tokens: list["RefreshTokenModel"] = Relationship(back_populates="user")

@@ -17,7 +17,7 @@ class RefreshTokenMapper:
             created_at=cast(datetime, model.created_at),
             expires_at=cast(datetime, model.expires_at),
             replaced_by=cast(str | None, model.replaced_by),
-            fk_user_tenant_id=UUID(str(model.fk_user_tenant_id)),
+            fk_user_id=cast(UUID | None, model.fk_user_id),
         )
 
     @staticmethod
@@ -29,5 +29,5 @@ class RefreshTokenMapper:
             expires_at=entity.expires_at,
             revoked=entity.revoked,
             replaced_by=entity.replaced_by,
-            fk_user_tenant_id=entity.fk_user_tenant_id,
+            fk_user_id=entity.fk_user_id,
         )

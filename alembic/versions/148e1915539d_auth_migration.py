@@ -1,8 +1,8 @@
 """auth migration
 
-Revision ID: 374a0d5cbd39
+Revision ID: 148e1915539d
 Revises: 
-Create Date: 2026-03-28 00:23:13.365690
+Create Date: 2026-03-29 00:05:51.771147
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '374a0d5cbd39'
+revision: str = '148e1915539d'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -72,6 +72,19 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_link_user_tenant_requests_fk_tenant_id'), 'link_user_tenant_requests', ['fk_tenant_id'], unique=False)
     op.create_index(op.f('ix_link_user_tenant_requests_fk_user_id'), 'link_user_tenant_requests', ['fk_user_id'], unique=False)
+    op.create_table('refresh_tokens',
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('token_hash', sa.String(length=255), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('revoked', sa.Boolean(), nullable=False),
+    sa.Column('replaced_by', sa.String(length=255), nullable=True),
+    sa.Column('fk_user_id', sa.Uuid(), nullable=True),
+    sa.ForeignKeyConstraint(['fk_user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_refresh_tokens_fk_user_id'), 'refresh_tokens', ['fk_user_id'], unique=False)
+    op.create_index(op.f('ix_refresh_tokens_token_hash'), 'refresh_tokens', ['token_hash'], unique=True)
     op.create_table('role_permissions',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('fk_role_id', sa.Uuid(), nullable=False),
@@ -94,19 +107,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_user_tenants_fk_tenant_id'), 'user_tenants', ['fk_tenant_id'], unique=False)
     op.create_index(op.f('ix_user_tenants_fk_user_id'), 'user_tenants', ['fk_user_id'], unique=False)
-    op.create_table('refresh_tokens',
-    sa.Column('id', sa.Uuid(), nullable=False),
-    sa.Column('token_hash', sa.String(length=255), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('revoked', sa.Boolean(), nullable=False),
-    sa.Column('replaced_by', sa.String(length=255), nullable=True),
-    sa.Column('fk_user_tenant_id', sa.Uuid(), nullable=True),
-    sa.ForeignKeyConstraint(['fk_user_tenant_id'], ['user_tenants.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_refresh_tokens_fk_user_tenant_id'), 'refresh_tokens', ['fk_user_tenant_id'], unique=False)
-    op.create_index(op.f('ix_refresh_tokens_token_hash'), 'refresh_tokens', ['token_hash'], unique=True)
     op.create_table('user_tenant_roles',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('fk_user_tenant_id', sa.Uuid(), nullable=False),
@@ -127,15 +127,15 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_user_tenant_roles_fk_user_tenant_id'), table_name='user_tenant_roles')
     op.drop_index(op.f('ix_user_tenant_roles_fk_role_id'), table_name='user_tenant_roles')
     op.drop_table('user_tenant_roles')
-    op.drop_index(op.f('ix_refresh_tokens_token_hash'), table_name='refresh_tokens')
-    op.drop_index(op.f('ix_refresh_tokens_fk_user_tenant_id'), table_name='refresh_tokens')
-    op.drop_table('refresh_tokens')
     op.drop_index(op.f('ix_user_tenants_fk_user_id'), table_name='user_tenants')
     op.drop_index(op.f('ix_user_tenants_fk_tenant_id'), table_name='user_tenants')
     op.drop_table('user_tenants')
     op.drop_index(op.f('ix_role_permissions_fk_role_id'), table_name='role_permissions')
     op.drop_index(op.f('ix_role_permissions_fk_permission_id'), table_name='role_permissions')
     op.drop_table('role_permissions')
+    op.drop_index(op.f('ix_refresh_tokens_token_hash'), table_name='refresh_tokens')
+    op.drop_index(op.f('ix_refresh_tokens_fk_user_id'), table_name='refresh_tokens')
+    op.drop_table('refresh_tokens')
     op.drop_index(op.f('ix_link_user_tenant_requests_fk_user_id'), table_name='link_user_tenant_requests')
     op.drop_index(op.f('ix_link_user_tenant_requests_fk_tenant_id'), table_name='link_user_tenant_requests')
     op.drop_table('link_user_tenant_requests')
