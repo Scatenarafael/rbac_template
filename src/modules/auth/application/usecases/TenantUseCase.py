@@ -1,0 +1,60 @@
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.modules.auth.application.rules import TenantRules
+from src.modules.auth.domain.entities import Tenant, User, UserTenant, UserTenantRole
+from src.modules.auth.domain.interfaces.repositories.Roles import IRolesRepository
+from src.modules.auth.domain.interfaces.repositories.Tenants import ITenantRepository
+from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
+from src.modules.auth.domain.interfaces.repositories.UserTenantRoles import IUserTenantRoleRepository
+from src.modules.auth.domain.interfaces.repositories.UserTenants import IUserTenantRepository
+from src.modules.auth.presentation.schemas.dtos.tenant_dto import TenantCreationPayloadDTO
+from src.modules.auth.presentation.schemas.pydantic.tenant_schema import TenantCreationPayloadSchema
+
+
+class CreateTenantUseCase:
+    def __init__(
+        self,
+        session: AsyncSession,
+        tenant_repository: ITenantRepository,
+        user_repository: IUserRepository,
+        role_repository: IRolesRepository,
+        user_tenant_repository: IUserTenantRepository,
+        user_tenant_role_repository: IUserTenantRoleRepository,
+    ) -> None:
+        self.session = session
+        self.tenant_repository = tenant_repository
+        self.user_repository = user_repository
+        self.role_repository = role_repository
+        self.user_tenant_repository = user_tenant_repository
+        self.user_tenant_role_repository = user_tenant_role_repository
+
+    async def _create_tenant_relationships(self, user: User, tenant: Tenant) -> None:
+        user_tenant = UserTenant(fk_user_id=user.id, fk_tenant_id=tenant.id)
+
+        # Create user-tenant relationship
+        user_tenant_instance = await self.user_tenant_repository.create(data=user_tenant)
+
+        owner_role = await self.role_repository.find_by_name("tenantadmin")
+
+        if not owner_role:
+            raise ValueError("Default role 'tenantadmin' not found. Please ensure it exists in the database.")
+
+        user_tenant_role = UserTenantRole(fk_user_tenant_id=user_tenant_instance.id, fk_role_id=owner_role.id)
+
+        # Assign default role to the user for the tenant (e.g., "admin")
+        await self.user_tenant_role_repository.create(data=user_tenant_role)
+
+    async def execute(self, payload: TenantCreationPayloadSchema, user_id: UUID) -> Tenant:
+        user = await TenantRules(self.tenant_repository, self.user_repository).validate_tenant_creation(payload.name, user_id)
+        tenant = TenantCreationPayloadDTO.to_entity(payload)
+        try:
+            tenant = await self.tenant_repository.create(tenant)
+            await self._create_tenant_relationships(user, tenant)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
+
+        return tenant

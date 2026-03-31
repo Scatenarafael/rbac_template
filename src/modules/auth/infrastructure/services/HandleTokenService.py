@@ -156,3 +156,8 @@ class HandleTokenService(IHandleTokenService):
             max_age=max_age,
             path="/",
         )
+
+    @staticmethod
+    def clear_cookies(response: Response) -> None:
+        response.delete_cookie(settings.ACCESS_COOKIE_NAME)
+        response.delete_cookie(settings.REFRESH_COOKIE_NAME)

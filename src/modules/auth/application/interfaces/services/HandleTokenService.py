@@ -15,7 +15,7 @@ class IHandleTokenService(ABC, Generic[TResponse]):
 
     @staticmethod
     @abstractmethod
-    async def verify_access_token(self, token: str) -> dict | None:
+    async def verify_access_token(token: str) -> dict | None:
         pass
 
     @abstractmethod
@@ -30,4 +30,9 @@ class IHandleTokenService(ABC, Generic[TResponse]):
     @staticmethod
     @abstractmethod
     def set_refresh_cookie(response: TResponse, jti: str, raw_refresh: str) -> None:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def clear_cookies(response: TResponse) -> None:
         pass

@@ -1,3 +1,4 @@
+from typing import Sequence
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -9,12 +10,19 @@ from src.modules.auth.infrastructure.models.Tenant import TenantModel
 
 
 class TenantsRepository(ITenantRepository):
+    async def list(self) -> Sequence[Tenant]:
+        stmt = select(TenantModel)  # type: ignore
+        result = await self._session.execute(stmt)
+        tenants = result.scalars().all()
+
+        return [TenantMapper.to_entity(tenant) for tenant in tenants]
+
     async def create(self, data: Tenant) -> Tenant:
 
         tenant = TenantMapper.from_entity(data)
 
         self._session.add(tenant)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(tenant)
 
         return TenantMapper.to_entity(tenant)
@@ -65,4 +73,13 @@ class TenantsRepository(ITenantRepository):
     async def delete(self, id: UUID) -> None:
         await self._session.execute(delete(TenantModel).where(TenantModel.id == id))  # type: ignore
         await self._session.commit()
-        await self._session.refresh(TenantModel)
+
+    async def find_by_name(self, name: str) -> Tenant | None:
+        stmt = select(TenantModel).where(TenantModel.name == name)  # type: ignore
+        result = await self._session.execute(stmt)
+        tenant = result.scalar_one_or_none()
+
+        if tenant is None:
+            return None
+
+        return TenantMapper.to_entity(tenant)

@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from src.core.config.config import get_settings
 from src.modules.auth.infrastructure.services import HandleTokenService
 
-PUBLIC_PATHS = ["/auth/login", "/auth/refresh", "/auth/logout", "/users/register", "/docs", "/openapi.json"]
+PUBLIC_PATHS = ["/auth/sign-in", "/auth/refresh", "/auth/sign-out", "/users/register", "/docs", "/openapi.json"]
 
 settings = get_settings()
 

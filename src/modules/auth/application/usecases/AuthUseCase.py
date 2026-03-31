@@ -62,3 +62,25 @@ class RefreshTokenUseCase(Generic[TRequest, TResponse]):
         self.handle_token_service.set_refresh_cookie(response, refresh_token_data["refresh_jti"], refresh_token_data["refresh_token"])
 
         return {"access_token": refresh_token_data["access_token"]}
+
+
+class SignOutUseCase(Generic[TResponse]):
+    def __init__(self, handle_token_service: IHandleTokenService[TResponse]):
+        self.handle_token_service = handle_token_service
+
+    async def execute(self, response: TResponse) -> None:
+        self.handle_token_service.clear_cookies(response)
+
+
+class GetLoggedUserIdUseCase:
+    def __init__(self, handle_token_service: IHandleTokenService[TResponse]):
+        self.handle_token_service = handle_token_service
+
+    async def execute(self, access_token: str) -> str | None:
+
+        payload = await self.handle_token_service.verify_access_token(token=access_token)
+
+        if payload is None:
+            return None
+
+        return payload.get("sub")
