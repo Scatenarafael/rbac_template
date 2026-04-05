@@ -1,4 +1,5 @@
 from src.modules.auth.application.interfaces.services.HashPasswordService import IHashPasswordService
+from src.modules.auth.domain.exceptions import InvalidCredentials
 from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
 
 
@@ -11,9 +12,9 @@ class SignInRules:
         user = await self.user_repository.find_by_email(email)
 
         if not user:
-            raise ValueError("Credentials are not valid")
+            raise InvalidCredentials("Credentials are not valid")
 
         if not self.hash_password_service.verify_password(password, user.hashed_password):
-            raise ValueError("Credentials are not valid")
+            raise InvalidCredentials("Credentials are not valid")
 
         return user

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.infrastructure.database.settings.connection import get_session
@@ -20,10 +20,7 @@ def get_list_user_usecase(session: AsyncSession = Depends(get_session)) -> ListU
 
 @router.post("/register", response_model=RegisterUserResponseBody, status_code=status.HTTP_201_CREATED)
 async def create(payload: RegisterUserRequestBody, create_usecase: RegisterUserUseCase = Depends(get_register_user_usecase)):
-    try:
-        return await create_usecase.execute(payload=payload)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return await create_usecase.execute(payload=payload)
 
 
 @router.get("/", response_model=list[RegisterUserResponseBody])

@@ -4,7 +4,7 @@ from src.core.config.config import get_settings
 from src.modules.auth.application.interfaces.services.HandleTokenService import IHandleTokenService
 from src.modules.auth.application.interfaces.services.HashPasswordService import IHashPasswordService
 from src.modules.auth.application.rules.AuthRules import SignInRules
-from src.modules.auth.domain.exceptions import RefreshInvalid
+from src.modules.auth.domain.exceptions import InvalidCredentials, RefreshInvalid, RefreshNotFound
 from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
 from src.modules.auth.presentation.schemas.pydantic.auth_schema import SignInRequestPayload
 
@@ -40,12 +40,12 @@ class RefreshTokenUseCase(Generic[TRequest, TResponse]):
     async def execute(self, request: TRequest, response: TResponse) -> dict:
 
         if not hasattr(request, "cookies"):
-            raise ValueError("Request object does not have cookies attribute")
+            raise TypeError("Request object does not have cookies attribute")
 
         cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)  # type: ignore
 
         if not cookie:
-            return {"error": "Refresh token not found"}
+            raise RefreshNotFound("Refresh token not found")
 
         # parse cookie (formato jti:raw)
         try:
@@ -56,7 +56,7 @@ class RefreshTokenUseCase(Generic[TRequest, TResponse]):
         refresh_token_data = await self.handle_token_service.rotate_refresh(raw, jti)
 
         if not refresh_token_data:
-            raise ValueError("Invalid refresh token")
+            raise InvalidCredentials("Invalid refresh token")
 
         self.handle_token_service.set_access_cookie(response, refresh_token_data["access_token"])
         self.handle_token_service.set_refresh_cookie(response, refresh_token_data["refresh_jti"], refresh_token_data["refresh_token"])

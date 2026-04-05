@@ -11,7 +11,7 @@ from jose import JWTError, jwt
 from src.core.config.config import get_settings
 from src.modules.auth.application.interfaces.services.HandleTokenService import IHandleTokenService
 from src.modules.auth.domain.entities import RefreshToken
-from src.modules.auth.domain.exceptions import InvalidCredentials, RefreshExpired, RefreshInvalid, RefreshReuseDetected
+from src.modules.auth.domain.exceptions import InvalidCredentials, RefreshExpired, RefreshInvalid, RefreshNotFound, RefreshReuseDetected
 from src.modules.auth.domain.interfaces.repositories.RefreshTokens import IRefreshTokenRepository
 
 # Access token (JWT)
@@ -83,7 +83,7 @@ class HandleTokenService(IHandleTokenService):
         record_model = await self.refresh_token_repository.get_by_jti(self._parse_jti(jti))
 
         if not record_model:
-            raise InvalidCredentials("Refresh token não encontrado")
+            raise RefreshNotFound("Refresh token não encontrado")
 
         record_model = cast(RefreshToken, record_model)
 

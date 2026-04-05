@@ -5,7 +5,7 @@ import pytest
 from fastapi import Response
 
 from src.modules.auth.application.usecases.AuthUseCase import RefreshTokenUseCase
-from src.modules.auth.domain.exceptions import RefreshInvalid
+from src.modules.auth.domain.exceptions import RefreshInvalid, RefreshNotFound
 from src.modules.auth.infrastructure.services.HandleTokenService import HandleTokenService
 
 
@@ -59,6 +59,16 @@ def test_refresh_usecase_rejects_malformed_refresh_cookie():
     request = type("RequestStub", (), {"cookies": {"refresh_token": "malformed-cookie"}})()
 
     with pytest.raises(RefreshInvalid, match="Formato do cookie de refresh invalido"):
+        asyncio.run(usecase.execute(request=request, response=response))
+
+
+def test_refresh_usecase_requires_refresh_cookie():
+    service = FakeHandleTokenService()
+    usecase = RefreshTokenUseCase(handle_token_service=service)
+    response = Response()
+    request = type("RequestStub", (), {"cookies": {}})()
+
+    with pytest.raises(RefreshNotFound, match="Refresh token not found"):
         asyncio.run(usecase.execute(request=request, response=response))
 
 

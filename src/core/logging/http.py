@@ -114,14 +114,17 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 async def domain_exception_handler(request: Request, exc: DomainError) -> JSONResponse:
     request_id = _resolve_request_id(request)
-    http_logger.warning(
+    level = http_logger.warning if exc.status_code < 500 else http_logger.error
+    level(
         "Domain rule violated",
         request_id=request_id,
+        code=exc.code,
+        status_code=exc.status_code,
         detail=str(exc),
     )
     return _error_response(
-        status_code=400,
-        code="domain_error",
+        status_code=exc.status_code,
+        code=exc.code,
         message=str(exc) or "Domain rule violated",
         request_id=request_id,
     )

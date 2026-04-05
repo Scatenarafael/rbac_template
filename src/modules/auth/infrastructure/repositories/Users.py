@@ -1,7 +1,9 @@
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 
+from src.modules.auth.domain.exceptions import EmailAlreadyExists
 from src.modules.auth.domain.entities.User import User
 from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
 from src.modules.auth.infrastructure.mappers.UserMappers import UserMapper
@@ -14,8 +16,12 @@ class UserRepository(IUserRepository):
         user = UserMapper.from_entity(data)
 
         self._session.add(user)
-        await self._session.commit()
-        await self._session.refresh(user)
+        try:
+            await self._session.commit()
+            await self._session.refresh(user)
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise EmailAlreadyExists("Email not accepted!") from exc
 
         return UserMapper.to_entity(user)
 
@@ -63,8 +69,12 @@ class UserRepository(IUserRepository):
                 updated = True
 
         if updated:
-            await self._session.commit()
-            await self._session.refresh(user)
+            try:
+                await self._session.commit()
+                await self._session.refresh(user)
+            except IntegrityError as exc:
+                await self._session.rollback()
+                raise EmailAlreadyExists("Email not accepted!") from exc
 
         return UserMapper.to_entity(user)
 

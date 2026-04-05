@@ -2,7 +2,9 @@ from typing import Sequence
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 
+from src.modules.auth.domain.exceptions import TenantAlreadyExists
 from src.modules.auth.domain.entities.Tenant import Tenant
 from src.modules.auth.domain.interfaces.repositories.Tenants import ITenantRepository
 from src.modules.auth.infrastructure.mappers.TenantMappers import TenantMapper
@@ -22,8 +24,12 @@ class TenantsRepository(ITenantRepository):
         tenant = TenantMapper.from_entity(data)
 
         self._session.add(tenant)
-        await self._session.flush()
-        await self._session.refresh(tenant)
+        try:
+            await self._session.flush()
+            await self._session.refresh(tenant)
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise TenantAlreadyExists("Tenant name already exists!") from exc
 
         return TenantMapper.to_entity(tenant)
 
@@ -65,8 +71,12 @@ class TenantsRepository(ITenantRepository):
                 updated = True
 
         if updated:
-            await self._session.commit()
-            await self._session.refresh(tenant)
+            try:
+                await self._session.commit()
+                await self._session.refresh(tenant)
+            except IntegrityError as exc:
+                await self._session.rollback()
+                raise TenantAlreadyExists("Tenant name already exists!") from exc
 
         return TenantMapper.to_entity(tenant)
 

@@ -1,26 +1,66 @@
 # app/domain/exceptions.py
 class DomainError(Exception):
-    pass
+    status_code = 400
+    code = "domain_error"
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(message)
+        self.message = message
 
 
 class ValidationError(DomainError):
-    pass
+    status_code = 422
+    code = "validation_error"
 
 
-# Exceções específicas
-class AuthError(DomainError): ...
+class ConflictError(DomainError):
+    status_code = 409
+    code = "conflict_error"
 
 
-class InvalidCredentials(AuthError): ...
+class NotFoundError(DomainError):
+    status_code = 404
+    code = "not_found"
 
 
-class RefreshNotFound(AuthError): ...
+class ConfigurationError(DomainError):
+    status_code = 500
+    code = "configuration_error"
 
 
-class RefreshReuseDetected(AuthError): ...
+class AuthError(DomainError):
+    status_code = 401
+    code = "auth_error"
 
 
-class RefreshExpired(AuthError): ...
+class InvalidCredentials(AuthError):
+    code = "invalid_credentials"
 
 
-class RefreshInvalid(AuthError): ...
+class RefreshNotFound(AuthError):
+    code = "refresh_not_found"
+
+
+class RefreshReuseDetected(AuthError):
+    status_code = 409
+    code = "refresh_reuse_detected"
+
+
+class RefreshExpired(AuthError):
+    code = "refresh_expired"
+
+
+class RefreshInvalid(AuthError):
+    code = "refresh_invalid"
+
+
+class EmailAlreadyExists(ConflictError):
+    code = "email_already_exists"
+
+
+class TenantAlreadyExists(ConflictError):
+    code = "tenant_already_exists"
+
+
+class UserNotFound(NotFoundError):
+    code = "user_not_found"

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.auth.application.rules import TenantRules
 from src.modules.auth.domain.entities import Tenant, User, UserTenant, UserTenantRole
+from src.modules.auth.domain.exceptions import ConfigurationError
 from src.modules.auth.domain.interfaces.repositories.Roles import IRolesRepository
 from src.modules.auth.domain.interfaces.repositories.Tenants import ITenantRepository
 from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
@@ -39,7 +40,7 @@ class CreateTenantUseCase:
         owner_role = await self.role_repository.find_by_name("tenantadmin")
 
         if not owner_role:
-            raise ValueError("Default role 'tenantadmin' not found. Please ensure it exists in the database.")
+            raise ConfigurationError("Default role 'tenantadmin' not found. Please ensure it exists in the database.")
 
         user_tenant_role = UserTenantRole(fk_user_tenant_id=user_tenant_instance.id, fk_role_id=owner_role.id)
 
