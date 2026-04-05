@@ -1,0 +1,202 @@
+import asyncio
+from uuid import uuid4
+
+from fastapi import Response
+
+from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, SignInUseCase, SignOutUseCase
+from src.modules.auth.domain.entities.User import User
+from src.modules.auth.domain.value_objects.Emails import Email
+from src.modules.auth.presentation.routers.auth_router import (
+    get_refresh_token_usecase,
+    get_sign_in_usecase,
+    get_sign_out_usecase,
+    refresh_token,
+    sign_in,
+    sign_out,
+)
+from src.modules.auth.presentation.schemas.pydantic.auth_schema import SignInRequestPayload
+
+
+class FakeUserRepository:
+    def __init__(self, user: User) -> None:
+        self.user = user
+        self.find_by_email_calls = []
+
+    async def find_by_email(self, email: str) -> User:
+        self.find_by_email_calls.append(email)
+        return self.user
+
+
+class FakeHashPasswordService:
+    def __init__(self, is_valid: bool = True) -> None:
+        self.is_valid = is_valid
+        self.verify_calls = []
+
+    def verify_password(self, password: str, hashed_password: str) -> bool:
+        self.verify_calls.append((password, hashed_password))
+        return self.is_valid
+
+
+class FakeHandleTokenService:
+    def __init__(self, payload=None) -> None:
+        self.payload = payload
+        self.access_cookie_calls = []
+        self.refresh_cookie_calls = []
+        self.clear_cookie_calls = []
+        self.create_access_token_calls = []
+        self.create_refresh_token_calls = []
+        self.verify_calls = []
+
+    async def create_access_token(self, user_id: str) -> str:
+        self.create_access_token_calls.append(user_id)
+        return "access-token"
+
+    async def create_refresh_token(self, user_id: str) -> dict[str, str]:
+        self.create_refresh_token_calls.append(user_id)
+        return {
+            "refresh_token": "refresh-token",
+            "refresh_jti": str(uuid4()),
+            "user_id": user_id,
+        }
+
+    def set_access_cookie(self, response: Response, access_token: str) -> None:
+        self.access_cookie_calls.append((response, access_token))
+
+    def set_refresh_cookie(self, response: Response, jti: str, raw_refresh: str) -> None:
+        self.refresh_cookie_calls.append((response, jti, raw_refresh))
+
+    def clear_cookies(self, response: Response) -> None:
+        self.clear_cookie_calls.append(response)
+
+    async def verify_access_token(self, token: str):
+        self.verify_calls.append(token)
+        return self.payload
+
+
+def make_user() -> User:
+    return User(
+        id=uuid4(),
+        first_name="John",
+        last_name="Doe",
+        email=Email("john.doe@email.com"),
+        hashed_password="hashed-password",
+    )
+
+
+def test_sign_in_usecase_returns_tokens_and_sets_cookies():
+    user = make_user()
+    repository = FakeUserRepository(user)
+    hash_password_service = FakeHashPasswordService()
+    handle_token_service = FakeHandleTokenService()
+    usecase = SignInUseCase(repository, hash_password_service, handle_token_service)
+    response = Response()
+    payload = SignInRequestPayload(email="john.doe@email.com", password="secret123")
+
+    result = asyncio.run(usecase.execute(payload=payload, response=response))
+
+    assert repository.find_by_email_calls == ["john.doe@email.com"]
+    assert hash_password_service.verify_calls == [("secret123", "hashed-password")]
+    assert handle_token_service.create_access_token_calls == [str(user.id)]
+    assert handle_token_service.create_refresh_token_calls == [str(user.id)]
+    assert handle_token_service.access_cookie_calls == [(response, "access-token")]
+    assert handle_token_service.refresh_cookie_calls[0][0] is response
+    assert handle_token_service.refresh_cookie_calls[0][2] == "refresh-token"
+    assert result["access_token"] == "access-token"
+    assert result["user_id"] == str(user.id)
+
+
+def test_sign_out_usecase_clears_response_cookies():
+    handle_token_service = FakeHandleTokenService()
+    usecase = SignOutUseCase(handle_token_service)
+    response = Response()
+
+    asyncio.run(usecase.execute(response))
+
+    assert handle_token_service.clear_cookie_calls == [response]
+
+
+def test_get_logged_user_id_usecase_returns_subject_when_token_is_valid():
+    usecase = GetLoggedUserIdUseCase(FakeHandleTokenService(payload={"sub": "user-123"}))
+
+    result = asyncio.run(usecase.execute("valid-token"))
+
+    assert result == "user-123"
+
+
+def test_get_logged_user_id_usecase_returns_none_when_token_is_invalid():
+    usecase = GetLoggedUserIdUseCase(FakeHandleTokenService(payload=None))
+
+    result = asyncio.run(usecase.execute("invalid-token"))
+
+    assert result is None
+
+
+def test_auth_router_dependency_factories_inject_same_session_into_repositories():
+    session = object()
+
+    sign_in_usecase = get_sign_in_usecase(session=session)
+    refresh_usecase = get_refresh_token_usecase(session=session)
+    sign_out_usecase = get_sign_out_usecase(session=session)
+
+    assert sign_in_usecase.user_repository._session is session
+    assert sign_in_usecase.handle_token_service.refresh_token_repository._session is session
+    assert refresh_usecase.handle_token_service.refresh_token_repository._session is session
+    assert sign_out_usecase.handle_token_service.refresh_token_repository._session is session
+
+
+def test_sign_in_router_delegates_to_usecase():
+    payload = SignInRequestPayload(email="john.doe@email.com", password="secret123")
+    response = Response()
+
+    class FakeSignInUseCase:
+        def __init__(self) -> None:
+            self.calls = []
+
+        async def execute(self, payload, response):
+            self.calls.append((payload, response))
+            return {"access_token": "token"}
+
+    usecase = FakeSignInUseCase()
+
+    result = asyncio.run(sign_in(response=response, payload=payload, sign_in_usecase=usecase))
+
+    assert result == {"access_token": "token"}
+    assert usecase.calls == [(payload, response)]
+
+
+def test_refresh_token_router_delegates_request_and_response_to_usecase():
+    request = type("RequestStub", (), {"cookies": {"refresh_token": "cookie"}})()
+    response = Response()
+
+    class FakeRefreshTokenUseCase:
+        def __init__(self) -> None:
+            self.calls = []
+
+        async def execute(self, request, response):
+            self.calls.append((request, response))
+            return {"access_token": "token"}
+
+    usecase = FakeRefreshTokenUseCase()
+
+    result = asyncio.run(refresh_token(request=request, response=response, refresh_token_usecase=usecase))
+
+    assert result == {"access_token": "token"}
+    assert usecase.calls == [(request, response)]
+
+
+def test_sign_out_router_awaits_usecase_execution():
+    response = Response()
+
+    class FakeSignOutUseCase:
+        def __init__(self) -> None:
+            self.calls = []
+
+        async def execute(self, response):
+            self.calls.append(response)
+
+    usecase = FakeSignOutUseCase()
+
+    result = asyncio.run(sign_out(response=response, sign_out_usecase=usecase))
+
+    assert result is None
+    assert usecase.calls == [response]

@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
+import httpx
 
 from src.core.http.app_factory import create_app
 from src.modules.auth.domain.exceptions import DomainError, InvalidCredentials
@@ -37,24 +37,29 @@ def build_app():
     return app
 
 
-def auth_cookies() -> dict[str, str]:
-    access_token = asyncio.run(HandleTokenService(refresh_token_repository=None).create_access_token("11111111-1111-1111-1111-111111111111"))
+async def auth_cookies() -> dict[str, str]:
+    access_token = await HandleTokenService(refresh_token_repository=None).create_access_token("11111111-1111-1111-1111-111111111111")
     return {"access_token": access_token}
 
 
-def test_request_id_is_returned_on_success():
-    client = TestClient(build_app())
+def perform_request(path: str, *, raise_app_exceptions: bool = True, headers: dict[str, str] | None = None):
+    async def run():
+        transport = httpx.ASGITransport(app=build_app(), raise_app_exceptions=raise_app_exceptions)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver", cookies=await auth_cookies()) as client:
+            return await client.get(path, headers=headers)
 
-    response = client.get("/health", headers={"X-Request-ID": "req-123"}, cookies=auth_cookies())
+    return asyncio.run(run())
+
+
+def test_request_id_is_returned_on_success():
+    response = perform_request("/health", headers={"X-Request-ID": "req-123"})
 
     assert response.status_code == 200
     assert response.headers["X-Request-ID"] == "req-123"
 
 
 def test_unhandled_errors_return_debuggable_payload():
-    client = TestClient(build_app(), raise_server_exceptions=False)
-
-    response = client.get("/boom", headers={"X-Request-ID": "req-500"}, cookies=auth_cookies())
+    response = perform_request("/boom", raise_app_exceptions=False, headers={"X-Request-ID": "req-500"})
 
     assert response.status_code == 500
     assert response.headers["X-Request-ID"] == "req-500"
@@ -63,9 +68,7 @@ def test_unhandled_errors_return_debuggable_payload():
 
 
 def test_domain_errors_are_translated_to_client_response():
-    client = TestClient(build_app())
-
-    response = client.get("/domain", headers={"X-Request-ID": "req-domain"}, cookies=auth_cookies())
+    response = perform_request("/domain", headers={"X-Request-ID": "req-domain"})
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "domain_error"
@@ -73,9 +76,7 @@ def test_domain_errors_are_translated_to_client_response():
 
 
 def test_auth_errors_are_translated_with_specific_status_and_code():
-    client = TestClient(build_app())
-
-    response = client.get("/auth-error", headers={"X-Request-ID": "req-auth"}, cookies=auth_cookies())
+    response = perform_request("/auth-error", headers={"X-Request-ID": "req-auth"})
 
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "invalid_credentials"
@@ -84,9 +85,7 @@ def test_auth_errors_are_translated_with_specific_status_and_code():
 
 def test_request_logs_include_status_code(caplog):
     caplog.set_level(logging.INFO)
-    client = TestClient(build_app())
-
-    response = client.get("/http", headers={"X-Request-ID": "req-log"}, cookies=auth_cookies())
+    response = perform_request("/http", headers={"X-Request-ID": "req-log"})
 
     assert response.status_code == 404
     assert any(
