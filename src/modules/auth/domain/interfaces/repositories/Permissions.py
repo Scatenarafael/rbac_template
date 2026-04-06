@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.auth.domain.entities.Permission import Permission
+from src.modules.auth.domain.entities import Permission
 
 
 class IPermissionsRepository(ABC):

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from uuid import UUID
 
-from src.modules.auth.domain.entities.User import User
+from src.modules.auth.domain.entities import User
 from src.modules.auth.domain.interfaces.repositories.Base import IRepositoryBase
 
 
