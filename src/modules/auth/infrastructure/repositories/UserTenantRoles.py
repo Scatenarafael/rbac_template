@@ -1,4 +1,3 @@
-from typing import Sequence
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,33 +9,12 @@ from src.modules.auth.infrastructure.models.UserTenantRole import UserTenantRole
 
 
 class UserTenantRoleRepository(IUserTenantRoleRepository):
-    async def list(self) -> Sequence[UserTenantRole]:
-        stmt = select(UserTenantRole)  # type: ignore
-
-        result = await self._session.execute(stmt)
-
-        usertenantrole = result.scalars().all()
-
-        return usertenantrole
-
     async def create(self, data: UserTenantRole) -> UserTenantRole:
         usertenantrole = UserTenantRoleMapper.from_entity(data)
 
         self._session.add(usertenantrole)
         await self._session.flush()
         await self._session.refresh(usertenantrole)
-        return UserTenantRoleMapper.to_entity(usertenantrole)
-
-    async def get_by_id(self, id: UUID) -> UserTenantRole | None:
-        stmt = select(UserTenantRoleModel).where(UserTenantRoleModel.id == id)  # type: ignore
-
-        result = await self._session.execute(stmt)
-
-        usertenantrole = result.scalar_one_or_none()
-
-        if usertenantrole is None:
-            return None
-
         return UserTenantRoleMapper.to_entity(usertenantrole)
 
     async def update(self, id: UUID, data: dict) -> UserTenantRole | None:

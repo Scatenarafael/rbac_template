@@ -1,15 +1,15 @@
 from src.modules.auth.application.interfaces.services.HashPasswordService import IHashPasswordService
 from src.modules.auth.domain.exceptions import InvalidCredentials
-from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
+from src.modules.auth.domain.interfaces.queries.Users import IUsersQuery
 
 
 class SignInRules:
-    def __init__(self, user_repository: IUserRepository, hash_password_service: IHashPasswordService):
-        self.user_repository = user_repository
+    def __init__(self, users_query: IUsersQuery, hash_password_service: IHashPasswordService):
+        self.users_query = users_query
         self.hash_password_service = hash_password_service
 
     async def validate(self, email: str, password: str):
-        user = await self.user_repository.find_by_email(email)
+        user = await self.users_query.find_by_email(email)
 
         if not user:
             raise InvalidCredentials("Credentials are not valid")

@@ -5,7 +5,7 @@ from src.modules.auth.application.interfaces.services.HandleTokenService import 
 from src.modules.auth.application.interfaces.services.HashPasswordService import IHashPasswordService
 from src.modules.auth.application.rules.AuthRules import SignInRules
 from src.modules.auth.domain.exceptions import InvalidCredentials, RefreshInvalid, RefreshNotFound
-from src.modules.auth.domain.interfaces.repositories.Users import IUserRepository
+from src.modules.auth.domain.interfaces.queries.Users import IUsersQuery
 from src.modules.auth.presentation.schemas.pydantic.auth_schema import SignInRequestPayload
 
 TRequest = TypeVar("TRequest")
@@ -15,14 +15,14 @@ settings = get_settings()
 
 
 class SignInUseCase(Generic[TResponse]):
-    def __init__(self, user_repository: IUserRepository, hash_password_service: IHashPasswordService, handle_token_service: IHandleTokenService[TResponse]):
-        self.user_repository = user_repository
+    def __init__(self, users_query: IUsersQuery, hash_password_service: IHashPasswordService, handle_token_service: IHandleTokenService[TResponse]):
+        self.users_query = users_query
         self.hash_password_service = hash_password_service
         self.handle_token_service = handle_token_service
 
     async def execute(self, payload: SignInRequestPayload, response: TResponse) -> dict:
 
-        user = await SignInRules(self.user_repository, self.hash_password_service).validate(payload.email, payload.password)
+        user = await SignInRules(self.users_query, self.hash_password_service).validate(payload.email, payload.password)
 
         access_token = await self.handle_token_service.create_access_token(str(user.id))
         refresh_token_data = await self.handle_token_service.create_refresh_token(str(user.id))

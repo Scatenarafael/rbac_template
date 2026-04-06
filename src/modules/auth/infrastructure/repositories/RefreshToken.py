@@ -17,14 +17,6 @@ class RefreshTokenRepository(IRefreshTokenRepository):
         await self._session.refresh(refresh_token)
         return RefreshTokenMapper.to_entity(refresh_token)
 
-    async def get_by_jti(self, jti: UUID) -> RefreshToken | None:
-        stmt = select(RefreshTokenModel).where(RefreshTokenModel.id == jti)  # type: ignore
-        result = await self._session.execute(stmt)
-        refresh_token = result.scalars().first()
-        if refresh_token:
-            return RefreshTokenMapper.to_entity(refresh_token)
-        return None
-
     async def revoke_token_by_jti(self, jti: UUID, replaced_by: str | None = None) -> None:
 
         stmt = select(RefreshTokenModel).where(RefreshTokenModel.id == jti)  # type: ignore

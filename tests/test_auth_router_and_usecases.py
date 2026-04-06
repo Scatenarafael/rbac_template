@@ -17,7 +17,7 @@ from src.modules.auth.presentation.routers.auth_router import (
 from src.modules.auth.presentation.schemas.pydantic.auth_schema import SignInRequestPayload
 
 
-class FakeUserRepository:
+class FakeUsersQuery:
     def __init__(self, user: User) -> None:
         self.user = user
         self.find_by_email_calls = []
@@ -85,16 +85,16 @@ def make_user() -> User:
 
 def test_sign_in_usecase_returns_tokens_and_sets_cookies():
     user = make_user()
-    repository = FakeUserRepository(user)
+    users_query = FakeUsersQuery(user)
     hash_password_service = FakeHashPasswordService()
     handle_token_service = FakeHandleTokenService()
-    usecase = SignInUseCase(repository, hash_password_service, handle_token_service)
+    usecase = SignInUseCase(users_query, hash_password_service, handle_token_service)
     response = Response()
     payload = SignInRequestPayload(email="john.doe@email.com", password="secret123")
 
     result = asyncio.run(usecase.execute(payload=payload, response=response))
 
-    assert repository.find_by_email_calls == ["john.doe@email.com"]
+    assert users_query.find_by_email_calls == ["john.doe@email.com"]
     assert hash_password_service.verify_calls == [("secret123", "hashed-password")]
     assert handle_token_service.create_access_token_calls == [str(user.id)]
     assert handle_token_service.create_refresh_token_calls == [str(user.id)]
@@ -131,17 +131,20 @@ def test_get_logged_user_id_usecase_returns_none_when_token_is_invalid():
     assert result is None
 
 
-def test_auth_router_dependency_factories_inject_same_session_into_repositories():
+def test_auth_router_dependency_factories_inject_same_session_into_queries_and_repositories():
     session = object()
 
     sign_in_usecase = get_sign_in_usecase(session=session)
     refresh_usecase = get_refresh_token_usecase(session=session)
     sign_out_usecase = get_sign_out_usecase(session=session)
 
-    assert sign_in_usecase.user_repository._session is session
+    assert sign_in_usecase.users_query._session is session
     assert sign_in_usecase.handle_token_service.refresh_token_repository._session is session
+    assert sign_in_usecase.handle_token_service.refresh_tokens_query._session is session
     assert refresh_usecase.handle_token_service.refresh_token_repository._session is session
+    assert refresh_usecase.handle_token_service.refresh_tokens_query._session is session
     assert sign_out_usecase.handle_token_service.refresh_token_repository._session is session
+    assert sign_out_usecase.handle_token_service.refresh_tokens_query._session is session
 
 
 def test_sign_in_router_delegates_to_usecase():

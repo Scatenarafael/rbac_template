@@ -12,6 +12,7 @@ from src.core.config.config import get_settings
 from src.modules.auth.application.interfaces.services.HandleTokenService import IHandleTokenService
 from src.modules.auth.domain.entities import RefreshToken
 from src.modules.auth.domain.exceptions import InvalidCredentials, RefreshExpired, RefreshInvalid, RefreshNotFound, RefreshReuseDetected
+from src.modules.auth.domain.interfaces.queries.RefreshTokens import IRefreshTokensQuery
 from src.modules.auth.domain.interfaces.repositories.RefreshTokens import IRefreshTokenRepository
 
 # Access token (JWT)
@@ -20,8 +21,13 @@ settings = get_settings()
 
 
 class HandleTokenService(IHandleTokenService):
-    def __init__(self, refresh_token_repository: Optional[IRefreshTokenRepository]):
+    def __init__(
+        self,
+        refresh_token_repository: Optional[IRefreshTokenRepository],
+        refresh_tokens_query: Optional[IRefreshTokensQuery] = None,
+    ):
         self.refresh_token_repository = refresh_token_repository
+        self.refresh_tokens_query = refresh_tokens_query
 
     def _new_jti(self) -> str:
         return str(uuid.uuid4())
@@ -77,10 +83,10 @@ class HandleTokenService(IHandleTokenService):
 
     async def rotate_refresh(self, raw_refresh: str, jti: str):
         # refreshing token
-        if not self.refresh_token_repository:
+        if not self.refresh_token_repository or not self.refresh_tokens_query:
             raise InvalidCredentials("Refresh token repository not available")
 
-        record_model = await self.refresh_token_repository.get_by_jti(self._parse_jti(jti))
+        record_model = await self.refresh_tokens_query.get_by_id(self._parse_jti(jti))
 
         if not record_model:
             raise RefreshNotFound("Refresh token não encontrado")

@@ -21,19 +21,6 @@ class LinkUserTenantRequestRepository(ILinkUserTenantRequestRepository):
         await self._session.refresh(link_user_tenant_request_model)
         return LinkUserTenantRequestMapper.to_entity(link_user_tenant_request_model)
 
-    async def get_by_id(self, id: UUID) -> LinkUserTenantRequest | None:
-
-        stmt = select(LinkUserTenantRequestModel).where(LinkUserTenantRequestModel.id == id)  # type: ignore
-
-        result = await self._session.execute(stmt)
-
-        link_user_tenant_request_model = result.scalar_one_or_none()
-
-        if link_user_tenant_request_model is None:
-            return None
-
-        return LinkUserTenantRequestMapper.to_entity(link_user_tenant_request_model)
-
     async def update(self, id: UUID, data: dict) -> LinkUserTenantRequest | None:
         stmt = select(LinkUserTenantRequestModel).where(LinkUserTenantRequestModel.id == id)  # type: ignore
 

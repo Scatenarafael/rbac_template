@@ -9,20 +9,24 @@ from src.modules.auth.presentation.schemas.pydantic.user_schema import RegisterU
 
 
 class FakeUserRepository:
+    def __init__(self) -> None:
+        self.created = []
+
+    async def create(self, user: User) -> User:
+        self.created.append(user)
+        return user
+
+
+class FakeUsersQuery:
     def __init__(self, existing_user=None, users=None) -> None:
         self.existing_user = existing_user
         self.users = users or []
-        self.created = []
         self.find_by_email_calls = []
         self.list_calls = 0
 
     async def find_by_email(self, email: str):
         self.find_by_email_calls.append(email)
         return self.existing_user
-
-    async def create(self, user: User) -> User:
-        self.created.append(user)
-        return user
 
     async def list(self):
         self.list_calls += 1
@@ -50,8 +54,9 @@ def make_user(email: str = "john.doe@email.com") -> User:
 
 def test_register_user_usecase_hashes_password_and_persists_email_value_object():
     repository = FakeUserRepository()
+    users_query = FakeUsersQuery()
     hash_password_service = FakeHashPasswordService()
-    usecase = RegisterUserUseCase(repository, hash_password_service)
+    usecase = RegisterUserUseCase(repository, users_query, hash_password_service)
     payload = RegisterUserRequestBody(
         first_name="John",
         last_name="Doe",
@@ -63,30 +68,30 @@ def test_register_user_usecase_hashes_password_and_persists_email_value_object()
     user = asyncio.run(usecase.execute(payload))
 
     assert hash_password_service.hash_calls == ["secret123"]
-    assert repository.find_by_email_calls == ["john.doe@email.com"]
+    assert users_query.find_by_email_calls == ["john.doe@email.com"]
     assert repository.created[0].hashed_password == "hashed::secret123"
     assert repository.created[0].email.value == "john.doe@email.com"
     assert user is repository.created[0]
 
 
-def test_list_user_usecase_returns_repository_result():
+def test_list_user_usecase_returns_query_result():
     users = [make_user("john@email.com"), make_user("jane@email.com")]
-    repository = FakeUserRepository(users=users)
-    usecase = ListUserUseCase(repository)
+    users_query = FakeUsersQuery(users=users)
+    usecase = ListUserUseCase(users_query)
 
     result = asyncio.run(usecase.execute())
 
     assert result == users
-    assert repository.list_calls == 1
+    assert users_query.list_calls == 1
 
 
-def test_get_list_user_usecase_injects_session_into_repository():
+def test_get_list_user_usecase_injects_session_into_query():
     session = object()
 
     usecase = get_list_user_usecase(session=session)
 
     assert isinstance(usecase, ListUserUseCase)
-    assert usecase.user_repository._session is session
+    assert usecase.users_query._session is session
 
 
 def test_list_users_returns_usecase_result():

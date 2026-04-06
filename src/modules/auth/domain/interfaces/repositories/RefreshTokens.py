@@ -17,10 +17,6 @@ class IRefreshTokenRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_jti(self, jti: UUID) -> Optional[RefreshToken]:
-        pass
-
-    @abstractmethod
     async def revoke_token(self, jti: UUID, replaced_by: str | None = None) -> None:
         pass
 

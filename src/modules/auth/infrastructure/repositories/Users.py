@@ -25,19 +25,6 @@ class UserRepository(IUserRepository):
 
         return UserMapper.to_entity(user)
 
-    async def get_by_id(self, id: UUID) -> User | None:
-
-        stmt = select(UserModel).where(UserModel.id == id)  # type: ignore
-
-        result = await self._session.execute(stmt)
-
-        user = result.scalar_one_or_none()
-
-        if user is None:
-            return None
-
-        return UserMapper.to_entity(user)
-
     async def update(self, id: UUID, data: dict) -> User | None:
         stmt = select(UserModel).where(UserModel.id == id)  # type: ignore
 
@@ -83,18 +70,6 @@ class UserRepository(IUserRepository):
         await self._session.commit()
         await self._session.refresh(UserModel)
 
-    async def find_by_email(self, email: str) -> User | None:
-        stmt = select(UserModel).where(UserModel.email == email)  # type: ignore
-
-        result = await self._session.execute(stmt)
-
-        user = result.scalar_one_or_none()
-
-        if user is None:
-            return None
-
-        return UserMapper.to_entity(user)
-
     async def change_password(self, id: UUID, new_password: str) -> User | None:
         stmt = select(UserModel).where(UserModel.id == id)  # type: ignore
         result = await self._session.execute(stmt)
@@ -108,10 +83,3 @@ class UserRepository(IUserRepository):
         await self._session.refresh(user)
 
         return UserMapper.to_entity(user)
-
-    async def list(self) -> list[User]:
-        stmt = select(UserModel)  # type: ignore
-        result = await self._session.execute(stmt)
-        users = result.scalars().all()
-
-        return [UserMapper.to_entity(user) for user in users]

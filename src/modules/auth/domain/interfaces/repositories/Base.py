@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Sequence, TypeVar
+from typing import Generic, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,15 +12,7 @@ class IRepositoryBase(ABC, Generic[TEntity, TId]):
         self._session = session
 
     @abstractmethod
-    async def list(self) -> Sequence[TEntity]:
-        pass
-
-    @abstractmethod
     async def create(self, data: TEntity) -> TEntity:
-        pass
-
-    @abstractmethod
-    async def get_by_id(self, id: TId) -> TEntity | None:
         pass
 
     @abstractmethod

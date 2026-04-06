@@ -10,15 +10,9 @@ from src.modules.auth.infrastructure.services.HandleTokenService import HandleTo
 
 
 class FakeRefreshTokenRepository:
-    def __init__(self, record: RefreshToken | None = None) -> None:
-        self.record = record
-        self.get_by_jti_calls = []
+    def __init__(self) -> None:
         self.revoke_all_calls = []
         self.save_calls = []
-
-    async def get_by_jti(self, jti: UUID):
-        self.get_by_jti_calls.append(jti)
-        return self.record
 
     async def revoke_all_for_user(self, user_id: UUID) -> None:
         self.revoke_all_calls.append(user_id)
@@ -32,6 +26,16 @@ class FakeRefreshTokenRepository:
                 "expires_at": expires_at,
             }
         )
+
+
+class FakeRefreshTokensQuery:
+    def __init__(self, record: RefreshToken | None = None) -> None:
+        self.record = record
+        self.get_by_id_calls = []
+
+    async def get_by_id(self, id: UUID):
+        self.get_by_id_calls.append(id)
+        return self.record
 
 
 def make_refresh_token(*, token_hash: str, fk_user_id: UUID | None = None, revoked: bool = False, expires_at: datetime | None = None) -> RefreshToken:
@@ -54,14 +58,15 @@ def test_rotate_refresh_requires_repository_configuration():
 def test_rotate_refresh_revokes_all_sessions_when_refresh_is_reused():
     service = HandleTokenService(refresh_token_repository=None)
     user_id = uuid4()
-    repository = FakeRefreshTokenRepository(
+    repository = FakeRefreshTokenRepository()
+    refresh_tokens_query = FakeRefreshTokensQuery(
         make_refresh_token(
             token_hash=service._hash_refresh_token("opaque-refresh-token"),
             fk_user_id=user_id,
             revoked=True,
         )
     )
-    service = HandleTokenService(refresh_token_repository=repository)
+    service = HandleTokenService(refresh_token_repository=repository, refresh_tokens_query=refresh_tokens_query)
 
     with pytest.raises(RefreshReuseDetected, match="Refresh reutilizado"):
         asyncio.run(service.rotate_refresh("opaque-refresh-token", str(uuid4())))
@@ -71,13 +76,14 @@ def test_rotate_refresh_revokes_all_sessions_when_refresh_is_reused():
 
 def test_rotate_refresh_revokes_all_sessions_when_hash_does_not_match():
     user_id = uuid4()
-    repository = FakeRefreshTokenRepository(
+    repository = FakeRefreshTokenRepository()
+    refresh_tokens_query = FakeRefreshTokensQuery(
         make_refresh_token(
             token_hash=HandleTokenService(refresh_token_repository=None)._hash_refresh_token("different-token"),
             fk_user_id=user_id,
         )
     )
-    service = HandleTokenService(refresh_token_repository=repository)
+    service = HandleTokenService(refresh_token_repository=repository, refresh_tokens_query=refresh_tokens_query)
 
     with pytest.raises(RefreshInvalid, match="Refresh invalido|Refresh inválido"):
         asyncio.run(service.rotate_refresh("opaque-refresh-token", str(uuid4())))
@@ -87,14 +93,15 @@ def test_rotate_refresh_revokes_all_sessions_when_hash_does_not_match():
 
 def test_rotate_refresh_rejects_expired_token_without_rotating():
     user_id = uuid4()
-    repository = FakeRefreshTokenRepository(
+    repository = FakeRefreshTokenRepository()
+    refresh_tokens_query = FakeRefreshTokensQuery(
         make_refresh_token(
             token_hash=HandleTokenService(refresh_token_repository=None)._hash_refresh_token("opaque-refresh-token"),
             fk_user_id=user_id,
             expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
         )
     )
-    service = HandleTokenService(refresh_token_repository=repository)
+    service = HandleTokenService(refresh_token_repository=repository, refresh_tokens_query=refresh_tokens_query)
 
     with pytest.raises(RefreshExpired, match="Refresh expirado"):
         asyncio.run(service.rotate_refresh("opaque-refresh-token", str(uuid4())))
@@ -106,18 +113,19 @@ def test_rotate_refresh_rejects_expired_token_without_rotating():
 def test_rotate_refresh_revokes_old_token_saves_new_one_and_returns_new_credentials():
     user_id = uuid4()
     raw_refresh = "opaque-refresh-token"
-    repository = FakeRefreshTokenRepository(
+    repository = FakeRefreshTokenRepository()
+    refresh_tokens_query = FakeRefreshTokensQuery(
         make_refresh_token(
             token_hash=HandleTokenService(refresh_token_repository=None)._hash_refresh_token(raw_refresh),
             fk_user_id=user_id,
         )
     )
-    service = HandleTokenService(refresh_token_repository=repository)
+    service = HandleTokenService(refresh_token_repository=repository, refresh_tokens_query=refresh_tokens_query)
     refresh_jti = uuid4()
 
     result = asyncio.run(service.rotate_refresh(raw_refresh, str(refresh_jti)))
 
-    assert repository.get_by_jti_calls == [refresh_jti]
+    assert refresh_tokens_query.get_by_id_calls == [refresh_jti]
     assert repository.revoke_all_calls == [user_id]
     assert len(repository.save_calls) == 1
     assert repository.save_calls[0]["fk_user_id"] == user_id

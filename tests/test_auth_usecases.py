@@ -30,12 +30,12 @@ class FakeHandleTokenService:
         response.set_cookie(key="refresh_token", value=f"{jti}:{raw_refresh}")
 
 
-class FakeRefreshTokenRepository:
+class FakeRefreshTokensQuery:
     def __init__(self) -> None:
-        self.get_by_jti_calls: list[object] = []
+        self.get_by_id_calls: list[object] = []
 
-    async def get_by_jti(self, jti):
-        self.get_by_jti_calls.append(jti)
+    async def get_by_id(self, id):
+        self.get_by_id_calls.append(id)
         return None
 
 
@@ -73,10 +73,11 @@ def test_refresh_usecase_requires_refresh_cookie():
 
 
 def test_handle_token_service_rejects_invalid_jti_before_repository_lookup():
-    repository = FakeRefreshTokenRepository()
-    service = HandleTokenService(refresh_token_repository=repository)
+    repository = object()
+    refresh_tokens_query = FakeRefreshTokensQuery()
+    service = HandleTokenService(refresh_token_repository=repository, refresh_tokens_query=refresh_tokens_query)
 
     with pytest.raises(RefreshInvalid, match="Identificador do refresh invalido"):
         asyncio.run(service.rotate_refresh("opaque-refresh-token", "not-a-uuid"))
 
-    assert repository.get_by_jti_calls == []
+    assert refresh_tokens_query.get_by_id_calls == []

@@ -1,4 +1,3 @@
-from typing import Sequence
 from uuid import UUID
 
 from sqlalchemy import select
@@ -17,16 +16,6 @@ class RolesRepository(IRolesRepository):
         self._session.add(role_model)
         await self._session.commit()
         await self._session.refresh(role_model)
-        return RoleMapper.to_entity(role_model)
-
-    async def get_by_id(self, id: UUID) -> Role | None:
-
-        stmt = select(RoleModel).where(RoleModel.id == id)  # type: ignore
-        result = await self._session.execute(stmt)
-        role_model = result.scalar_one_or_none()
-
-        if role_model is None:
-            return None
         return RoleMapper.to_entity(role_model)
 
     async def update(self, id: UUID, data: dict) -> Role | None:
@@ -73,19 +62,3 @@ class RolesRepository(IRolesRepository):
         await self._session.delete(role_model)
         await self._session.commit()
         return True
-
-    async def list(self) -> Sequence[Role]:
-        stmt = select(RoleModel)
-        result = await self._session.execute(stmt)
-        role_models = result.scalars().all()
-        return [RoleMapper.to_entity(role_model) for role_model in role_models]
-
-    async def find_by_name(self, name: str) -> Role | None:
-        normalized_name = name.strip().lower()
-        stmt = select(RoleModel).where(RoleModel.name == normalized_name)  # type: ignore
-        result = await self._session.execute(stmt)
-        role_model = result.scalar_one_or_none()
-
-        if role_model is None:
-            return None
-        return RoleMapper.to_entity(role_model)

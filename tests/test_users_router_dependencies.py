@@ -14,6 +14,7 @@ def test_get_register_user_usecase_injects_session_into_repository():
 
     assert isinstance(usecase, RegisterUserUseCase)
     assert usecase.user_repository._session is session
+    assert usecase.users_query._session is session
 
 
 def test_register_user_response_body_validates_user_entity_with_email_value_object():
