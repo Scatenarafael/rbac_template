@@ -33,6 +33,11 @@ class AuthError(DomainError):
     code = "auth_error"
 
 
+class ForbiddenError(AuthError):
+    status_code = 403
+    code = "forbidden_error"
+
+
 class InvalidCredentials(AuthError):
     code = "invalid_credentials"
 

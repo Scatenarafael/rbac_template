@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from src.modules.auth.domain.exceptions import InvalidCredentials
-from src.modules.auth.presentation.routers.tenant_router import create_tenant
+from src.modules.auth.presentation.routers.tenant_router import create_tenant, update_tenant
 from src.modules.auth.presentation.schemas.pydantic.tenant_schema import TenantCreationPayloadSchema
 
 
@@ -30,6 +30,15 @@ class FakeLoggedUserIdUseCase:
     async def execute(self, access_token: str) -> str | None:
         self.calls.append(access_token)
         return self.user_id
+
+
+class FakeUpdateTenantUseCase:
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def execute(self, tenant_id, payload):
+        self.calls.append((tenant_id, payload))
+        return {"tenant_id": str(tenant_id), "name": payload.name}
 
 
 def test_create_tenant_uses_authenticated_user_id_from_access_token():
@@ -67,3 +76,14 @@ def test_create_tenant_rejects_invalid_or_expired_access_token():
                 get_user_id_usecase=FakeLoggedUserIdUseCase(user_id=None),
             )
         )
+
+
+def test_update_tenant_forwards_tenant_id_and_payload_to_update_usecase():
+    tenant_id = uuid4()
+    payload = TenantCreationPayloadSchema(name="Renamed tenant")
+    usecase = FakeUpdateTenantUseCase()
+
+    result = asyncio.run(update_tenant(tenant_id=tenant_id, payload=payload, usecase=usecase))
+
+    assert usecase.calls == [(tenant_id, payload)]
+    assert result == {"tenant_id": str(tenant_id), "name": "Renamed tenant"}

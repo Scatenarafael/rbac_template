@@ -1,4 +1,5 @@
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
+from uuid import UUID
 
 from src.core.config.config import get_settings
 from src.modules.auth.application.interfaces.services.HandleTokenService import IHandleTokenService
@@ -84,3 +85,16 @@ class GetLoggedUserIdUseCase:
             return None
 
         return payload.get("sub")
+
+
+class MeUseCase:
+    def __init__(self, users_query: IUsersQuery):
+        self.users_query = users_query
+
+    async def execute(self, user_id: UUID) -> Any | None:
+        user = await self.users_query.me(user_id)
+
+        if user is None:
+            return None
+
+        return user

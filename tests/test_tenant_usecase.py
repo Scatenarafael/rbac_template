@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase
+from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, UpdateTenantUseCase
 from src.modules.auth.domain.entities import Role, Tenant, User, UserTenant, UserTenantRole
 from src.modules.auth.domain.value_objects.Emails import Email
 from src.modules.auth.presentation.factories.UseCaseFactory import TenantUseCaseFactory
@@ -50,6 +50,16 @@ class FakeRolesQuery:
 
     async def find_by_name(self, name: str) -> Role | None:
         return self.role
+
+
+class FakeTenantRules:
+    def __init__(self, user: User | None = None) -> None:
+        self.user = user or make_user()
+        self.validate_tenant_creation_calls = []
+
+    async def validate_tenant_creation(self, name: str, user_id):
+        self.validate_tenant_creation_calls.append((name, user_id))
+        return self.user
 
 
 class FakeUserTenantRepository:
@@ -103,6 +113,18 @@ def test_get_create_tenant_usecase_injects_same_session_everywhere():
     assert usecase.roles_query._session is session
 
 
+def test_get_update_tenant_usecase_builds_update_usecase_with_same_session_dependencies():
+    session = object()
+
+    usecase = TenantUseCaseFactory(session).build_update_tenant_usecase()
+
+    assert isinstance(usecase, UpdateTenantUseCase)
+    assert usecase.tenant_repository._session is session
+    assert usecase.tenants_query._session is session
+    assert usecase.rules.tenants_query._session is session
+    assert usecase.rules.users_query._session is session
+
+
 def test_create_tenant_usecase_commits_once_after_creating_tenant_relationships():
     session = FakeSession()
     tenant_repository = FakeTenantRepository()
@@ -111,6 +133,7 @@ def test_create_tenant_usecase_commits_once_after_creating_tenant_relationships(
     roles_query = FakeRolesQuery(make_role())
     user_tenant_repository = FakeUserTenantRepository()
     user_tenant_role_repository = FakeUserTenantRoleRepository()
+    rules = FakeTenantRules()
     payload = TenantCreationPayloadSchema(name="Acme")
     usecase = CreateTenantUseCase(
         session=session,
@@ -120,6 +143,7 @@ def test_create_tenant_usecase_commits_once_after_creating_tenant_relationships(
         tenants_query=tenants_query,
         users_query=users_query,
         roles_query=roles_query,
+        rules=rules,
     )
 
     tenant = asyncio.run(usecase.execute(payload, uuid4()))
@@ -130,12 +154,14 @@ def test_create_tenant_usecase_commits_once_after_creating_tenant_relationships(
     assert user_tenant_repository.created[0].fk_tenant_id == tenant.id
     assert len(user_tenant_role_repository.created) == 1
     assert user_tenant_role_repository.created[0].fk_user_tenant_id == user_tenant_repository.created[0].id
+    assert rules.validate_tenant_creation_calls[0][0] == "Acme"
     assert session.commit_calls == 1
     assert session.rollback_calls == 0
 
 
 def test_create_tenant_usecase_rolls_back_when_relationship_creation_fails():
     session = FakeSession()
+    rules = FakeTenantRules()
     usecase = CreateTenantUseCase(
         session=session,
         tenant_repository=FakeTenantRepository(),
@@ -144,6 +170,7 @@ def test_create_tenant_usecase_rolls_back_when_relationship_creation_fails():
         tenants_query=FakeTenantsQuery(),
         users_query=FakeUsersQuery(make_user()),
         roles_query=FakeRolesQuery(make_role()),
+        rules=rules,
     )
 
     with pytest.raises(RuntimeError, match="failed to create user tenant"):

@@ -10,7 +10,7 @@ class RoleMapper:
         return Role(
             id=UUID(str(model.id)),
             name=str(model.name),
-            description=str(model.description),
+            description=model.description,
         )
 
     @staticmethod

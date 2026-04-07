@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from src.modules.auth.domain.entities import UserTenantRole
+from src.modules.auth.domain.entities import UserTenantRole, UserTenantRoleDetailed
+from src.modules.auth.infrastructure.mappers.RoleMappers import RoleMapper
 from src.modules.auth.infrastructure.models.UserTenantRole import UserTenantRoleModel
 
 
@@ -20,4 +21,15 @@ class UserTenantRoleMapper:
             id=entity.id,
             fk_user_tenant_id=entity.fk_user_tenant_id,
             fk_role_id=entity.fk_role_id,
+        )
+
+
+class UserTenantRoleDetailedMapper:
+    @staticmethod
+    def to_entity(model: UserTenantRoleModel) -> UserTenantRoleDetailed:
+        return UserTenantRoleDetailed(
+            id=UUID(str(model.id)),
+            fk_user_tenant_id=UUID(str(model.fk_user_tenant_id)),
+            fk_role_id=UUID(str(model.fk_role_id)),
+            role=RoleMapper.to_entity(model.role),
         )

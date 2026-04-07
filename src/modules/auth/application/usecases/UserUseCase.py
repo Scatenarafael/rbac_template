@@ -8,14 +8,15 @@ from src.modules.auth.presentation.schemas.pydantic.user_schema import RegisterU
 
 
 class RegisterUserUseCase:
-    def __init__(self, user_repository: IUserRepository, users_query: IUsersQuery, hash_password_service: IHashPasswordService):
+    def __init__(self, user_repository: IUserRepository, users_query: IUsersQuery, hash_password_service: IHashPasswordService, rules: RegisterUserRules):
         self.user_repository = user_repository
         self.users_query = users_query
         self.hash_password_service = hash_password_service
+        self.rules = rules
 
     async def execute(self, payload: RegisterUserRequestBody):
 
-        await RegisterUserRules(self.users_query).validate_user_creation(payload)
+        await self.rules.validate_user_creation(payload)
 
         hashed_password = self.hash_password_service.hash_password(payload.password)
 

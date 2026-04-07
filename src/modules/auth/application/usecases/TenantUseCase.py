@@ -1,3 +1,4 @@
+from typing import Optional, Sequence
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,7 @@ class CreateTenantUseCase:
         tenants_query: ITenantsQuery,
         users_query: IUsersQuery,
         roles_query: IRolesQuery,
+        rules: TenantRules,
     ) -> None:
         self.session = session
         self.tenant_repository = tenant_repository
@@ -33,6 +35,7 @@ class CreateTenantUseCase:
         self.tenants_query = tenants_query
         self.users_query = users_query
         self.roles_query = roles_query
+        self.rules = rules
 
     async def _create_tenant_relationships(self, user: User, tenant: Tenant) -> None:
         user_tenant = UserTenant(fk_user_id=user.id, fk_tenant_id=tenant.id)
@@ -51,7 +54,7 @@ class CreateTenantUseCase:
         await self.user_tenant_role_repository.create(data=user_tenant_role)
 
     async def execute(self, payload: TenantCreationPayloadSchema, user_id: UUID) -> Tenant:
-        user = await TenantRules(self.tenants_query, self.users_query).validate_tenant_creation(payload.name, user_id)
+        user = await self.rules.validate_tenant_creation(payload.name, user_id)
         tenant = TenantCreationPayloadDTO.to_entity(payload)
         try:
             tenant = await self.tenant_repository.create(tenant)
@@ -62,3 +65,24 @@ class CreateTenantUseCase:
             raise
 
         return tenant
+
+
+class ListTenantsUseCase:
+    def __init__(self, tenants_query: ITenantsQuery) -> None:
+        self.tenants_query = tenants_query
+
+    async def execute(self) -> Sequence[Tenant]:
+        return await self.tenants_query.list()
+
+
+class UpdateTenantUseCase:
+    def __init__(self, tenant_repository: ITenantRepository, tenants_query: ITenantsQuery, rules: TenantRules) -> None:
+        self.tenant_repository = tenant_repository
+        self.tenants_query = tenants_query
+        self.rules = rules
+
+    async def execute(self, tenant_id: UUID, payload: TenantCreationPayloadSchema, logged_user_id: UUID) -> Optional[Tenant]:
+
+        await self.rules.validate_tenant_update(tenant_id, payload.model_dump(), logged_user_id)
+
+        return await self.tenant_repository.update(id=tenant_id, data=payload.model_dump())
