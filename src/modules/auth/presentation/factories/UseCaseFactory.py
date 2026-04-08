@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.modules.auth.application.rules import TenantRules
 from src.modules.auth.application.rules.UserRules import RegisterUserRules
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, MeUseCase, RefreshTokenUseCase, SignInUseCase, SignOutUseCase
-from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
+from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
 from src.modules.auth.application.usecases.UserUseCase import ListUserUseCase, RegisterUserUseCase
 from src.modules.auth.infrastructure.queries import RefreshTokensQuery, RolesQuery, TenantsQuery, UsersQuery
 from src.modules.auth.infrastructure.queries.UserTenantRoles import UserTenantRolesQuery
@@ -72,5 +72,11 @@ class TenantUseCaseFactory:
         return UpdateTenantUseCase(
             TenantsRepository(self.session),
             TenantsQuery(self.session),
+            TenantRules(TenantsQuery(self.session), UsersQuery(self.session), UserTenantRolesQuery(self.session)),
+        )
+
+    def build_delete_tenant_usecase(self) -> DeleteTenantUseCase:
+        return DeleteTenantUseCase(
+            TenantsRepository(self.session),
             TenantRules(TenantsQuery(self.session), UsersQuery(self.session), UserTenantRolesQuery(self.session)),
         )

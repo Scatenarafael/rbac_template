@@ -36,9 +36,9 @@ class FakeUpdateTenantUseCase:
     def __init__(self) -> None:
         self.calls = []
 
-    async def execute(self, tenant_id, payload):
-        self.calls.append((tenant_id, payload))
-        return {"tenant_id": str(tenant_id), "name": payload.name}
+    async def execute(self, tenant_id, payload, user_id):
+        self.calls.append((tenant_id, payload, user_id))
+        return {"tenant_id": str(tenant_id), "name": payload.name, "user_id": str(user_id)}
 
 
 def test_create_tenant_uses_authenticated_user_id_from_access_token():
@@ -79,11 +79,24 @@ def test_create_tenant_rejects_invalid_or_expired_access_token():
 
 
 def test_update_tenant_forwards_tenant_id_and_payload_to_update_usecase():
+    request = RequestStub(cookies={"access_token": "valid-token"})
     tenant_id = uuid4()
     payload = TenantCreationPayloadSchema(name="Renamed tenant")
     usecase = FakeUpdateTenantUseCase()
+    get_user_id_usecase = FakeLoggedUserIdUseCase(user_id=str(uuid4()))
 
-    result = asyncio.run(update_tenant(tenant_id=tenant_id, payload=payload, usecase=usecase))
+    result = asyncio.run(
+        update_tenant(
+            request=request,
+            tenant_id=tenant_id,
+            payload=payload,
+            usecase=usecase,
+            get_user_id_usecase=get_user_id_usecase,
+        )
+    )
 
-    assert usecase.calls == [(tenant_id, payload)]
-    assert result == {"tenant_id": str(tenant_id), "name": "Renamed tenant"}
+    assert get_user_id_usecase.calls == ["valid-token"]
+    assert usecase.calls[0][0] == tenant_id
+    assert usecase.calls[0][1] == payload
+    assert isinstance(usecase.calls[0][2], UUID)
+    assert result == {"tenant_id": str(tenant_id), "name": "Renamed tenant", "user_id": str(usecase.calls[0][2])}

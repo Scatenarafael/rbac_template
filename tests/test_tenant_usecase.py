@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, UpdateTenantUseCase
+from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, UpdateTenantUseCase
 from src.modules.auth.domain.entities import Role, Tenant, User, UserTenant, UserTenantRole
 from src.modules.auth.domain.value_objects.Emails import Email
 from src.modules.auth.presentation.factories.UseCaseFactory import TenantUseCaseFactory
@@ -25,10 +25,14 @@ class FakeSession:
 class FakeTenantRepository:
     def __init__(self) -> None:
         self.created: list[Tenant] = []
+        self.deleted_ids = []
 
     async def create(self, data: Tenant) -> Tenant:
         self.created.append(data)
         return data
+
+    async def delete(self, id) -> None:
+        self.deleted_ids.append(id)
 
 
 class FakeTenantsQuery:
@@ -56,10 +60,14 @@ class FakeTenantRules:
     def __init__(self, user: User | None = None) -> None:
         self.user = user or make_user()
         self.validate_tenant_creation_calls = []
+        self.validate_tenant_deletion_calls = []
 
     async def validate_tenant_creation(self, name: str, user_id):
         self.validate_tenant_creation_calls.append((name, user_id))
         return self.user
+
+    async def validate_tenant_deletion(self, tenant_id, logged_user_id):
+        self.validate_tenant_deletion_calls.append((tenant_id, logged_user_id))
 
 
 class FakeUserTenantRepository:
@@ -125,6 +133,17 @@ def test_get_update_tenant_usecase_builds_update_usecase_with_same_session_depen
     assert usecase.rules.users_query._session is session
 
 
+def test_get_delete_tenant_usecase_builds_delete_usecase_with_same_session_dependencies():
+    session = object()
+
+    usecase = TenantUseCaseFactory(session).build_delete_tenant_usecase()
+
+    assert isinstance(usecase, DeleteTenantUseCase)
+    assert usecase.tenant_repository._session is session
+    assert usecase.rules.tenants_query._session is session
+    assert usecase.rules.users_query._session is session
+
+
 def test_create_tenant_usecase_commits_once_after_creating_tenant_relationships():
     session = FakeSession()
     tenant_repository = FakeTenantRepository()
@@ -178,3 +197,16 @@ def test_create_tenant_usecase_rolls_back_when_relationship_creation_fails():
 
     assert session.commit_calls == 0
     assert session.rollback_calls == 1
+
+
+def test_delete_tenant_usecase_validates_access_before_deleting_tenant():
+    tenant_id = uuid4()
+    logged_user_id = uuid4()
+    tenant_repository = FakeTenantRepository()
+    rules = FakeTenantRules()
+    usecase = DeleteTenantUseCase(tenant_repository=tenant_repository, rules=rules)
+
+    asyncio.run(usecase.execute(tenant_id, logged_user_id))
+
+    assert rules.validate_tenant_deletion_calls == [(tenant_id, logged_user_id)]
+    assert tenant_repository.deleted_ids == [tenant_id]

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config.config import get_settings
 from src.core.infrastructure.database.settings.connection import get_session
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase
-from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
+from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
 from src.modules.auth.domain.exceptions import InvalidCredentials
 from src.modules.auth.presentation.factories.UseCaseFactory import AuthUseCaseFactory, TenantUseCaseFactory
 from src.modules.auth.presentation.schemas.pydantic.tenant_schema import TenantCreationPayloadSchema
@@ -25,6 +25,10 @@ def get_create_tenant_usecase(session: AsyncSession = Depends(get_session)) -> C
 
 def get_update_tenant_usecase(session: AsyncSession = Depends(get_session)) -> UpdateTenantUseCase:
     return TenantUseCaseFactory(session).build_update_tenant_usecase()
+
+
+def get_delete_tenant_usecase(session: AsyncSession = Depends(get_session)) -> DeleteTenantUseCase:
+    return TenantUseCaseFactory(session).build_delete_tenant_usecase()
 
 
 def get_logged_user_id_usecase(session: AsyncSession = Depends(get_session)) -> GetLoggedUserIdUseCase:
@@ -78,3 +82,26 @@ async def update_tenant(
         raise InvalidCredentials("Authenticated user identifier is invalid") from exc
 
     return await usecase.execute(tenant_id, payload, authenticated_user_id)
+
+
+@router.delete("/{tenant_id}")
+async def delete_tenant(
+    request: Request,
+    tenant_id: UUID,
+    usecase: DeleteTenantUseCase = Depends(get_delete_tenant_usecase),
+    get_user_id_usecase: GetLoggedUserIdUseCase = Depends(get_logged_user_id_usecase),
+):
+    access_token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
+    if not access_token:
+        raise InvalidCredentials("Access token not found")
+
+    user_id = await get_user_id_usecase.execute(access_token)
+    if not user_id:
+        raise InvalidCredentials("Access token invalid or expired")
+
+    try:
+        authenticated_user_id = UUID(user_id)
+    except (TypeError, ValueError) as exc:
+        raise InvalidCredentials("Authenticated user identifier is invalid") from exc
+
+    return await usecase.execute(tenant_id, authenticated_user_id)

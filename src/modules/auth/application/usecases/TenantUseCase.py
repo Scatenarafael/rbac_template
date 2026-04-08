@@ -86,3 +86,13 @@ class UpdateTenantUseCase:
         await self.rules.validate_tenant_update(tenant_id, payload.model_dump(), logged_user_id)
 
         return await self.tenant_repository.update(id=tenant_id, data=payload.model_dump())
+
+
+class DeleteTenantUseCase:
+    def __init__(self, tenant_repository: ITenantRepository, rules: TenantRules) -> None:
+        self.tenant_repository = tenant_repository
+        self.rules = rules
+
+    async def execute(self, tenant_id: UUID, logged_user_id: UUID) -> None:
+        await self.rules.validate_tenant_deletion(tenant_id, logged_user_id)
+        await self.tenant_repository.delete(id=tenant_id)

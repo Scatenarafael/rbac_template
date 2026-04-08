@@ -45,3 +45,15 @@ class TenantRules:
 
         if tenant.name != new_name and await self.tenants_query.find_by_name(new_name):
             raise TenantAlreadyExists("Tenant name already exists!")
+
+    async def validate_tenant_deletion(self, tenant_id: UUID, logged_user_id: UUID) -> None:
+
+        utr = await self.user_tenant_role_query.find_utr_by_user_and_tenant_id(logged_user_id, tenant_id)
+
+        if not utr or utr[0].role.name != "tenantadmin":
+            raise ForbiddenError("User does not have rights to delete this tenant!")
+
+        tenant = await self.tenants_query.get_by_id(tenant_id)
+
+        if not tenant:
+            raise TenantAlreadyExists("Tenant does not exist!")

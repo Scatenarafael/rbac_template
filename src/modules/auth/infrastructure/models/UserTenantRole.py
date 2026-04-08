@@ -26,6 +26,7 @@ class UserTenantRoleModel(SQLModel, table=True):
     id: UUID = Field(default_factory=new_uuid, primary_key=True)
     fk_user_tenant_id: UUID = Field(
         foreign_key="user_tenants.id",
+        ondelete="CASCADE",
         index=True,
         nullable=False,
     )

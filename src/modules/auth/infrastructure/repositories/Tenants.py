@@ -61,5 +61,9 @@ class TenantsRepository(ITenantRepository):
         return TenantMapper.to_entity(tenant)
 
     async def delete(self, id: UUID) -> None:
-        await self._session.execute(delete(TenantModel).where(TenantModel.id == id))  # type: ignore
-        await self._session.commit()
+        try:
+            await self._session.execute(delete(TenantModel).where(TenantModel.id == id))  # type: ignore
+            await self._session.commit()
+        except Exception:
+            await self._session.rollback()
+            raise

@@ -29,5 +29,5 @@ class TenantModel(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False, onupdate=utcnow),
     )
 
-    user_tenants: list["UserTenantModel"] = Relationship(back_populates="tenant")
-    link_user_tenant_requests: list["LinkUserTenantRequestModel"] = Relationship(back_populates="tenant")
+    user_tenants: list["UserTenantModel"] = Relationship(back_populates="tenant", passive_deletes="all")
+    link_user_tenant_requests: list["LinkUserTenantRequestModel"] = Relationship(back_populates="tenant", passive_deletes="all")

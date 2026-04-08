@@ -34,6 +34,7 @@ class LinkUserTenantRequestModel(SQLModel, table=True):
 
     fk_tenant_id: UUID = Field(
         foreign_key="tenants.id",
+        ondelete="CASCADE",
         index=True,
         nullable=False,
     )
