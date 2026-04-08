@@ -8,7 +8,7 @@ from src.core.infrastructure.database.settings.connection import get_session
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, MeUseCase, RefreshTokenUseCase, SignInUseCase, SignOutUseCase
 from src.modules.auth.domain.exceptions import InvalidCredentials
 from src.modules.auth.presentation.factories.UseCaseFactory import AuthUseCaseFactory
-from src.modules.auth.presentation.schemas.pydantic.auth_schema import SignInRequestPayload
+from src.modules.auth.presentation.schemas.pydantic.auth_schema import MeResponseBody, SignInRequestPayload
 
 router = APIRouter(tags=["auth"], prefix="/auth")
 settings = get_settings()
@@ -49,7 +49,7 @@ async def sign_out(response: Response, sign_out_usecase: SignOutUseCase = Depend
     await sign_out_usecase.execute(response=response)
 
 
-@router.get("/me")
+@router.get("/me", response_model=MeResponseBody)
 async def me(request: Request, me_usecase: MeUseCase = Depends(get_me_usecase), get_user_id_usecase: GetLoggedUserIdUseCase = Depends(get_logged_user_id_usecase)):
     access_token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if not access_token:

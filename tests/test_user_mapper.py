@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from src.modules.auth.infrastructure.mappers.UserMappers import UserMapper
 from src.modules.auth.infrastructure.models.Role import RoleModel
+from src.modules.auth.infrastructure.models.Tenant import TenantModel
 from src.modules.auth.infrastructure.models.User import UserModel
 from src.modules.auth.infrastructure.models.UserTenant import UserTenantModel
 from src.modules.auth.infrastructure.models.UserTenantRole import UserTenantRoleModel
@@ -11,6 +12,8 @@ def test_user_mapper_to_entity_with_tenant_roles_flattens_roles_from_all_tenants
     user_id = uuid4()
     first_user_tenant_id = uuid4()
     second_user_tenant_id = uuid4()
+    first_tenant = TenantModel(id=uuid4(), name="Acme")
+    second_tenant = TenantModel(id=uuid4(), name="Globex")
 
     admin_role = RoleModel(id=uuid4(), name="tenantadmin", description=None)
     member_role = RoleModel(id=uuid4(), name="member", description="Default role")
@@ -38,13 +41,15 @@ def test_user_mapper_to_entity_with_tenant_roles_flattens_roles_from_all_tenants
             UserTenantModel(
                 id=first_user_tenant_id,
                 fk_user_id=user_id,
-                fk_tenant_id=uuid4(),
+                fk_tenant_id=first_tenant.id,
+                tenant=first_tenant,
                 user_tenant_roles=[first_user_tenant_role],
             ),
             UserTenantModel(
                 id=second_user_tenant_id,
                 fk_user_id=user_id,
-                fk_tenant_id=uuid4(),
+                fk_tenant_id=second_tenant.id,
+                tenant=second_tenant,
                 user_tenant_roles=[second_user_tenant_role],
             ),
         ],
@@ -55,6 +60,10 @@ def test_user_mapper_to_entity_with_tenant_roles_flattens_roles_from_all_tenants
     assert result.id == user_id
     assert result.email == "john.doe@email.com"
     assert len(result.user_tenant_roles) == 2
+    assert result.user_tenant_roles[0].tenant is not None
+    assert result.user_tenant_roles[0].tenant.name == "Acme"
     assert result.user_tenant_roles[0].role.name == "tenantadmin"
     assert result.user_tenant_roles[0].role.description is None
+    assert result.user_tenant_roles[1].tenant is not None
+    assert result.user_tenant_roles[1].tenant.name == "Globex"
     assert result.user_tenant_roles[1].role.name == "member"

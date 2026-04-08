@@ -4,7 +4,10 @@ from uuid import uuid4
 from fastapi import Response
 
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, SignInUseCase, SignOutUseCase
-from src.modules.auth.domain.entities.User import User
+from src.modules.auth.domain.entities.Role import Role
+from src.modules.auth.domain.entities.Tenant import Tenant
+from src.modules.auth.domain.entities.User import User, UserWithTenantRoles
+from src.modules.auth.domain.entities.UserTenantRole import UserTenantRoleDetailed
 from src.modules.auth.domain.value_objects.Emails import Email
 from src.modules.auth.presentation.routers.auth_router import (
     get_refresh_token_usecase,
@@ -14,7 +17,7 @@ from src.modules.auth.presentation.routers.auth_router import (
     sign_in,
     sign_out,
 )
-from src.modules.auth.presentation.schemas.pydantic.auth_schema import SignInRequestPayload
+from src.modules.auth.presentation.schemas.pydantic.auth_schema import MeResponseBody, SignInRequestPayload
 
 
 class FakeUsersQuery:
@@ -203,3 +206,43 @@ def test_sign_out_router_awaits_usecase_execution():
 
     assert result is None
     assert usecase.calls == [response]
+
+
+def test_me_response_body_exposes_only_id_and_name_for_tenant_and_role():
+    me_response = UserWithTenantRoles(
+        id=uuid4(),
+        first_name="John",
+        last_name="Doe",
+        email="john.doe@email.com",
+        user_tenant_roles=[
+            UserTenantRoleDetailed(
+                id=uuid4(),
+                fk_user_tenant_id=uuid4(),
+                fk_role_id=uuid4(),
+                tenant=Tenant(id=uuid4(), name="Acme"),
+                role=Role(id=uuid4(), name="tenantadmin", description="Tenant admin"),
+            )
+        ],
+    )
+
+    response = MeResponseBody.model_validate(me_response)
+
+    assert response.model_dump() == {
+        "id": me_response.id,
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john.doe@email.com",
+        "user_tenant_roles": [
+            {
+                "id": me_response.user_tenant_roles[0].id,
+                "tenant": {
+                    "id": me_response.user_tenant_roles[0].tenant.id,
+                    "name": "Acme",
+                },
+                "role": {
+                    "id": me_response.user_tenant_roles[0].role.id,
+                    "name": "tenantadmin",
+                },
+            }
+        ],
+    }
