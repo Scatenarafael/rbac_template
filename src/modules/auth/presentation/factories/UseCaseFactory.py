@@ -2,10 +2,10 @@ from fastapi import Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.auth.application.rules import TenantRules
-from src.modules.auth.application.rules.UserRules import RegisterUserRules
+from src.modules.auth.application.rules.UserRules import ChangePasswordRules, RegisterUserRules, UpdateUserRules
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, MeUseCase, RefreshTokenUseCase, SignInUseCase, SignOutUseCase
 from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
-from src.modules.auth.application.usecases.UserUseCase import ListUserUseCase, RegisterUserUseCase
+from src.modules.auth.application.usecases.UserUseCase import ChangePasswordUseCase, ListUserUseCase, RegisterUserUseCase, UpdateUserUseCase
 from src.modules.auth.infrastructure.queries import RefreshTokensQuery, RolesQuery, TenantsQuery, UsersQuery
 from src.modules.auth.infrastructure.queries.UserTenantRoles import UserTenantRolesQuery
 from src.modules.auth.infrastructure.repositories import RefreshTokenRepository, TenantsRepository, UserRepository
@@ -23,6 +23,12 @@ class UserUseCaseFactory:
 
     def build_list_user_usecase(self) -> ListUserUseCase:
         return ListUserUseCase(UsersQuery(self.session))
+
+    def build_update_user_usecase(self) -> UpdateUserUseCase:
+        return UpdateUserUseCase(UserRepository(self.session), UsersQuery(self.session), HashPasswordService(), UpdateUserRules(UsersQuery(self.session)))
+
+    def build_change_password_usecase(self) -> ChangePasswordUseCase:
+        return ChangePasswordUseCase(UserRepository(self.session), UsersQuery(self.session), HashPasswordService(), ChangePasswordRules(UsersQuery(self.session)))
 
 
 class AuthUseCaseFactory:
