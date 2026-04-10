@@ -2,11 +2,14 @@ from fastapi import Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.auth.application.rules import TenantRules
+from src.modules.auth.application.rules.LinkUserTenantRequestsRules import LinkUserTenantRequestsRules
 from src.modules.auth.application.rules.UserRules import ChangePasswordRules, RegisterUserRules, UpdateUserRules
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, MeUseCase, RefreshTokenUseCase, SignInUseCase, SignOutUseCase
+from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import ListLinkUserTenantRequestUseCase
 from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
 from src.modules.auth.application.usecases.UserUseCase import ChangePasswordUseCase, ListUserUseCase, RegisterUserUseCase, UpdateUserUseCase
 from src.modules.auth.infrastructure.queries import RefreshTokensQuery, RolesQuery, TenantsQuery, UsersQuery
+from src.modules.auth.infrastructure.queries.LinkUserTenantRequests import LinkUserTenantRequestsQuery
 from src.modules.auth.infrastructure.queries.UserTenantRoles import UserTenantRolesQuery
 from src.modules.auth.infrastructure.repositories import RefreshTokenRepository, TenantsRepository, UserRepository
 from src.modules.auth.infrastructure.repositories.UserTenantRoles import UserTenantRoleRepository
@@ -29,6 +32,14 @@ class UserUseCaseFactory:
 
     def build_change_password_usecase(self) -> ChangePasswordUseCase:
         return ChangePasswordUseCase(UserRepository(self.session), UsersQuery(self.session), HashPasswordService(), ChangePasswordRules(UsersQuery(self.session)))
+
+
+class LinkUserTenantRequestUseCaseFactory:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    def build_list_link_user_tenant_request_usecase(self) -> ListLinkUserTenantRequestUseCase:
+        return ListLinkUserTenantRequestUseCase(LinkUserTenantRequestsQuery(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session)))
 
 
 class AuthUseCaseFactory:

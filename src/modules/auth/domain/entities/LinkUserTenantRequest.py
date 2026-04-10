@@ -14,6 +14,14 @@ from .Base import new_uuid, utcnow
 
 
 @dataclass(slots=True, kw_only=True)
+class UserToLinkUserTenantRequestList:
+    id: UUID
+    first_name: str
+    last_name: str
+    email: str
+
+
+@dataclass(slots=True, kw_only=True)
 class LinkUserTenantRequest:
     id: UUID = field(default_factory=new_uuid)
     fk_tenant_id: UUID
@@ -39,3 +47,11 @@ class LinkUserTenantRequest:
             raise ValidationError("Only pending requests can be rejected.")
         self.status = LinkUserTenantRequestStatus.REJECTED
         self.updated_at = utcnow()
+
+
+@dataclass(slots=True, kw_only=True)
+class LinkUserTenantRequestDetailed:
+    id: UUID = field(default_factory=new_uuid)
+    user: UserToLinkUserTenantRequestList
+    status: LinkUserTenantRequestStatus
+    updated_at: datetime = field(default_factory=utcnow)

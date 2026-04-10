@@ -1,7 +1,8 @@
 from uuid import UUID
 
+from src.modules.auth.application.rules.common.utils import CommonRules
 from src.modules.auth.domain.entities import User
-from src.modules.auth.domain.exceptions import ForbiddenError, TenantAlreadyExists, UserNotFound, ValidationError
+from src.modules.auth.domain.exceptions import NotFoundError, TenantAlreadyExists, UserNotFound, ValidationError
 from src.modules.auth.domain.interfaces.queries.Tenants import ITenantsQuery
 from src.modules.auth.domain.interfaces.queries.Users import IUsersQuery
 from src.modules.auth.domain.interfaces.queries.UserTenantRoles import IUserTenantRoleQuery
@@ -28,32 +29,26 @@ class TenantRules:
 
     async def validate_tenant_update(self, tenant_id: UUID, payload: dict, logged_user_id: UUID) -> None:
 
-        utr = await self.user_tenant_role_query.find_utr_by_user_and_tenant_id(logged_user_id, tenant_id)
-
-        if not utr or utr[0].role.name != "tenantadmin":
-            raise ForbiddenError("User does not have rights to update this tenant!")
+        await CommonRules().validates_if_user_is_tenant_admin(self.user_tenant_role_query, logged_user_id, tenant_id)
 
         tenant = await self.tenants_query.get_by_id(tenant_id)
 
         if not tenant:
-            raise TenantAlreadyExists("Tenant does not exist!")
+            raise NotFoundError("Tenant does not exist!")
 
         new_name = payload.get("name")
 
         if not new_name:
-            raise ValidationError("Paylod is not valid! Missing required fields")
+            raise ValidationError("Payload is not valid! Missing required fields")
 
         if tenant.name != new_name and await self.tenants_query.find_by_name(new_name):
             raise TenantAlreadyExists("Tenant name already exists!")
 
     async def validate_tenant_deletion(self, tenant_id: UUID, logged_user_id: UUID) -> None:
 
-        utr = await self.user_tenant_role_query.find_utr_by_user_and_tenant_id(logged_user_id, tenant_id)
-
-        if not utr or utr[0].role.name != "tenantadmin":
-            raise ForbiddenError("User does not have rights to delete this tenant!")
+        await CommonRules().validates_if_user_is_tenant_admin(self.user_tenant_role_query, logged_user_id, tenant_id)
 
         tenant = await self.tenants_query.get_by_id(tenant_id)
 
         if not tenant:
-            raise TenantAlreadyExists("Tenant does not exist!")
+            raise NotFoundError("Tenant does not exist!")

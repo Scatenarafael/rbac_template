@@ -13,7 +13,7 @@ from src.core.logging.logger import get_logger
 from src.modules.auth.presentation.middlewares.auth_middleware import AuthMiddleware
 from src.modules.auth.presentation.middlewares.request_id import RequestIdMiddleware
 from src.modules.auth.presentation.middlewares.request_logging import RequestLoggingMiddleware
-from src.modules.auth.presentation.routers import auth_router, tenant_router, users_router
+from src.modules.auth.presentation.routers import auth_router, link_user_tenant_request_router, tenant_router, users_router
 
 origins = [
     "http://localhost",
@@ -74,5 +74,6 @@ def create_app() -> FastAPI:
     app.include_router(tenant_router)
     app.include_router(users_router)
     app.include_router(auth_router)
+    app.include_router(link_user_tenant_request_router)
 
     return app
