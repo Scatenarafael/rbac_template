@@ -1,4 +1,6 @@
+# pyright: reportArgumentType=false
 import asyncio
+from typing import Any, cast
 from uuid import uuid4
 
 import pytest
@@ -54,9 +56,9 @@ def test_delete_tenant_rolls_back_when_dependency_cleanup_fails():
 
 
 def test_tenant_related_foreign_keys_use_database_delete_cascade():
-    user_tenant_tenant_fk = next(iter(UserTenantModel.__table__.c.fk_tenant_id.foreign_keys))
-    user_tenant_role_fk = next(iter(UserTenantRoleModel.__table__.c.fk_user_tenant_id.foreign_keys))
-    link_request_tenant_fk = next(iter(LinkUserTenantRequestModel.__table__.c.fk_tenant_id.foreign_keys))
+    user_tenant_tenant_fk = next(iter(cast(Any, UserTenantModel).__table__.c.fk_tenant_id.foreign_keys))
+    user_tenant_role_fk = next(iter(cast(Any, UserTenantRoleModel).__table__.c.fk_user_tenant_id.foreign_keys))
+    link_request_tenant_fk = next(iter(cast(Any, LinkUserTenantRequestModel).__table__.c.fk_tenant_id.foreign_keys))
 
     assert user_tenant_tenant_fk.ondelete == "CASCADE"
     assert user_tenant_role_fk.ondelete == "CASCADE"

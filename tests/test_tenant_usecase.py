@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=false
 import asyncio
 from uuid import uuid4
 

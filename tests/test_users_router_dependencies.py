@@ -1,20 +1,23 @@
+# pyright: reportArgumentType=false
 import asyncio
 
 from src.modules.auth.domain.entities.User import User
 from src.modules.auth.domain.value_objects.Emails import Email
 from src.modules.auth.application.usecases import RegisterUserUseCase
-from src.modules.auth.presentation.routers.users_router import create, get_register_user_usecase
+from src.modules.auth.presentation.factories.UseCaseFactory import UserUseCaseFactory
+from src.modules.auth.presentation.routers.users_router import create
 from src.modules.auth.presentation.schemas.pydantic.user_schema import RegisterUserRequestBody, RegisterUserResponseBody
 
 
 def test_get_register_user_usecase_injects_session_into_repository():
     session = object()
 
-    usecase = get_register_user_usecase(session=session)
+    usecase = UserUseCaseFactory(session).build_register_user_usecase()
 
     assert isinstance(usecase, RegisterUserUseCase)
     assert usecase.user_repository._session is session
     assert usecase.users_query._session is session
+    assert usecase.rules.users_query._session is session
 
 
 def test_register_user_response_body_validates_user_entity_with_email_value_object():

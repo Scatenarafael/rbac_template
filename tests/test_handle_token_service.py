@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=false
 import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4

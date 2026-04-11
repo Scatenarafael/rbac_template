@@ -1,4 +1,6 @@
+# pyright: reportArgumentType=false
 import asyncio
+from typing import Any, cast
 from uuid import uuid4
 
 from fastapi import Response
@@ -9,10 +11,8 @@ from src.modules.auth.domain.entities.Tenant import Tenant
 from src.modules.auth.domain.entities.User import User, UserWithTenantRoles
 from src.modules.auth.domain.entities.UserTenantRole import UserTenantRoleDetailed
 from src.modules.auth.domain.value_objects.Emails import Email
+from src.modules.auth.presentation.factories.UseCaseFactory import AuthUseCaseFactory
 from src.modules.auth.presentation.routers.auth_router import (
-    get_refresh_token_usecase,
-    get_sign_in_usecase,
-    get_sign_out_usecase,
     refresh_token,
     sign_in,
     sign_out,
@@ -137,17 +137,21 @@ def test_get_logged_user_id_usecase_returns_none_when_token_is_invalid():
 def test_auth_router_dependency_factories_inject_same_session_into_queries_and_repositories():
     session = object()
 
-    sign_in_usecase = get_sign_in_usecase(session=session)
-    refresh_usecase = get_refresh_token_usecase(session=session)
-    sign_out_usecase = get_sign_out_usecase(session=session)
+    factory = AuthUseCaseFactory(session)
+    sign_in_usecase = factory.build_sign_in_usecase()
+    refresh_usecase = factory.build_refresh_token_usecase()
+    sign_out_usecase = factory.build_sign_out_usecase()
+    sign_in_token_service = cast(Any, sign_in_usecase.handle_token_service)
+    refresh_token_service = cast(Any, refresh_usecase.handle_token_service)
+    sign_out_token_service = cast(Any, sign_out_usecase.handle_token_service)
 
     assert sign_in_usecase.users_query._session is session
-    assert sign_in_usecase.handle_token_service.refresh_token_repository._session is session
-    assert sign_in_usecase.handle_token_service.refresh_tokens_query._session is session
-    assert refresh_usecase.handle_token_service.refresh_token_repository._session is session
-    assert refresh_usecase.handle_token_service.refresh_tokens_query._session is session
-    assert sign_out_usecase.handle_token_service.refresh_token_repository._session is session
-    assert sign_out_usecase.handle_token_service.refresh_tokens_query._session is session
+    assert sign_in_token_service.refresh_token_repository._session is session
+    assert sign_in_token_service.refresh_tokens_query._session is session
+    assert refresh_token_service.refresh_token_repository._session is session
+    assert refresh_token_service.refresh_tokens_query._session is session
+    assert sign_out_token_service.refresh_token_repository._session is session
+    assert sign_out_token_service.refresh_tokens_query._session is session
 
 
 def test_sign_in_router_delegates_to_usecase():
@@ -226,6 +230,8 @@ def test_me_response_body_exposes_only_id_and_name_for_tenant_and_role():
     )
 
     response = MeResponseBody.model_validate(me_response)
+    tenant = me_response.user_tenant_roles[0].tenant
+    assert tenant is not None
 
     assert response.model_dump() == {
         "id": me_response.id,
@@ -236,7 +242,7 @@ def test_me_response_body_exposes_only_id_and_name_for_tenant_and_role():
             {
                 "id": me_response.user_tenant_roles[0].id,
                 "tenant": {
-                    "id": me_response.user_tenant_roles[0].tenant.id,
+                    "id": tenant.id,
                     "name": "Acme",
                 },
                 "role": {

@@ -1,4 +1,6 @@
+# pyright: reportArgumentType=false
 import asyncio
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -47,13 +49,16 @@ def test_create_tenant_uses_authenticated_user_id_from_access_token():
     usecase = FakeCreateTenantUseCase()
     get_user_id_usecase = FakeLoggedUserIdUseCase(user_id=str(uuid4()))
 
-    result = asyncio.run(
-        create_tenant(
-            request=request,
-            payload=payload,
-            usecase=usecase,
-            get_user_id_usecase=get_user_id_usecase,
-        )
+    result = cast(
+        dict[str, Any],
+        asyncio.run(
+            create_tenant(
+                request=request,
+                payload=payload,
+                usecase=usecase,
+                get_user_id_usecase=get_user_id_usecase,
+            )
+        ),
     )
 
     assert result["name"] == "Acme"

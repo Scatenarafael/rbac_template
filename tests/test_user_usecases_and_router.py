@@ -1,10 +1,12 @@
+# pyright: reportArgumentType=false
 import asyncio
 from uuid import uuid4
 
 from src.modules.auth.application.usecases.UserUseCase import ListUserUseCase, RegisterUserUseCase
 from src.modules.auth.domain.entities.User import User
 from src.modules.auth.domain.value_objects.Emails import Email
-from src.modules.auth.presentation.routers.users_router import get_list_user_usecase, list_users
+from src.modules.auth.presentation.factories.UseCaseFactory import UserUseCaseFactory
+from src.modules.auth.presentation.routers.users_router import list_users
 from src.modules.auth.presentation.schemas.pydantic.user_schema import RegisterUserRequestBody
 
 
@@ -42,6 +44,14 @@ class FakeHashPasswordService:
         return f"hashed::{password}"
 
 
+class FakeRegisterUserRules:
+    def __init__(self) -> None:
+        self.validate_user_creation_calls = []
+
+    async def validate_user_creation(self, payload: RegisterUserRequestBody):
+        self.validate_user_creation_calls.append(payload)
+
+
 def make_user(email: str = "john.doe@email.com") -> User:
     return User(
         id=uuid4(),
@@ -56,7 +66,8 @@ def test_register_user_usecase_hashes_password_and_persists_email_value_object()
     repository = FakeUserRepository()
     users_query = FakeUsersQuery()
     hash_password_service = FakeHashPasswordService()
-    usecase = RegisterUserUseCase(repository, users_query, hash_password_service)
+    rules = FakeRegisterUserRules()
+    usecase = RegisterUserUseCase(repository, users_query, hash_password_service, rules)
     payload = RegisterUserRequestBody(
         first_name="John",
         last_name="Doe",
@@ -68,7 +79,8 @@ def test_register_user_usecase_hashes_password_and_persists_email_value_object()
     user = asyncio.run(usecase.execute(payload))
 
     assert hash_password_service.hash_calls == ["secret123"]
-    assert users_query.find_by_email_calls == ["john.doe@email.com"]
+    assert rules.validate_user_creation_calls == [payload]
+    assert users_query.find_by_email_calls == []
     assert repository.created[0].hashed_password == "hashed::secret123"
     assert repository.created[0].email.value == "john.doe@email.com"
     assert user is repository.created[0]
@@ -88,7 +100,7 @@ def test_list_user_usecase_returns_query_result():
 def test_get_list_user_usecase_injects_session_into_query():
     session = object()
 
-    usecase = get_list_user_usecase(session=session)
+    usecase = UserUseCaseFactory(session).build_list_user_usecase()
 
     assert isinstance(usecase, ListUserUseCase)
     assert usecase.users_query._session is session
