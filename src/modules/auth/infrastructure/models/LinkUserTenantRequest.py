@@ -10,6 +10,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 from src.modules.auth.domain.enums.LinkUserTenantRequestStatus import (
     LinkUserTenantRequestStatus,
+    LinkUserTenantRequestType,
 )
 
 from .Base import new_uuid, utcnow
@@ -50,6 +51,18 @@ class LinkUserTenantRequestModel(SQLModel, table=True):
             SAEnum(
                 LinkUserTenantRequestStatus,
                 name="link_user_tenant_request_status",
+                native_enum=False,
+            ),
+            nullable=False,
+        ),
+    )
+
+    type: LinkUserTenantRequestType = Field(
+        default=LinkUserTenantRequestType.REQUEST_ENTRY,
+        sa_column=Column(
+            SAEnum(
+                LinkUserTenantRequestType,
+                name="link_user_tenant_request_type",
                 native_enum=False,
             ),
             nullable=False,

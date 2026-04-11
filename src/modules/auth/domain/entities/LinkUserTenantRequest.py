@@ -7,6 +7,7 @@ from uuid import UUID
 
 from src.modules.auth.domain.enums.LinkUserTenantRequestStatus import (
     LinkUserTenantRequestStatus,
+    LinkUserTenantRequestType,
 )
 from src.modules.auth.domain.exceptions import ValidationError
 
@@ -27,6 +28,7 @@ class LinkUserTenantRequest:
     fk_tenant_id: UUID
     fk_user_id: UUID
     status: LinkUserTenantRequestStatus = LinkUserTenantRequestStatus.PENDING
+    type: LinkUserTenantRequestType = LinkUserTenantRequestType.REQUEST_ENTRY
     created_at: datetime = field(default_factory=utcnow)
     updated_at: datetime = field(default_factory=utcnow)
 

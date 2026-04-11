@@ -5,13 +5,20 @@ from src.modules.auth.application.rules import TenantRules
 from src.modules.auth.application.rules.LinkUserTenantRequestsRules import LinkUserTenantRequestsRules
 from src.modules.auth.application.rules.UserRules import ChangePasswordRules, RegisterUserRules, UpdateUserRules
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase, MeUseCase, RefreshTokenUseCase, SignInUseCase, SignOutUseCase
-from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import ListLinkUserTenantRequestUseCase
+from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import (
+    AproveUserTenantRequestUseCase,
+    InviteUserToTenantUseCase,
+    ListLinkUserTenantRequestUseCase,
+    RejectUserTenantRequestUseCase,
+    RequestTenantEntryUseCase,
+)
 from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
 from src.modules.auth.application.usecases.UserUseCase import ChangePasswordUseCase, ListUserUseCase, RegisterUserUseCase, UpdateUserUseCase
 from src.modules.auth.infrastructure.queries import RefreshTokensQuery, RolesQuery, TenantsQuery, UsersQuery
 from src.modules.auth.infrastructure.queries.LinkUserTenantRequests import LinkUserTenantRequestsQuery
 from src.modules.auth.infrastructure.queries.UserTenantRoles import UserTenantRolesQuery
 from src.modules.auth.infrastructure.repositories import RefreshTokenRepository, TenantsRepository, UserRepository
+from src.modules.auth.infrastructure.repositories.LinkUserTenantRequest import LinkUserTenantRequestRepository
 from src.modules.auth.infrastructure.repositories.UserTenantRoles import UserTenantRoleRepository
 from src.modules.auth.infrastructure.repositories.UserTenants import UserTenantRepository
 from src.modules.auth.infrastructure.services import HandleTokenService, HashPasswordService
@@ -39,7 +46,29 @@ class LinkUserTenantRequestUseCaseFactory:
         self.session = session
 
     def build_list_link_user_tenant_request_usecase(self) -> ListLinkUserTenantRequestUseCase:
-        return ListLinkUserTenantRequestUseCase(LinkUserTenantRequestsQuery(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session)))
+        return ListLinkUserTenantRequestUseCase(
+            LinkUserTenantRequestsQuery(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+        )
+
+    def build_invite_user_to_tenant_usecase(self) -> InviteUserToTenantUseCase:
+        return InviteUserToTenantUseCase(
+            LinkUserTenantRequestRepository(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+        )
+
+    def build_request_tenant_entry_usecase(self) -> RequestTenantEntryUseCase:
+        return RequestTenantEntryUseCase(
+            LinkUserTenantRequestRepository(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+        )
+
+    def build_approve_user_tenant_request_usecase(self) -> AproveUserTenantRequestUseCase:
+        return AproveUserTenantRequestUseCase(
+            LinkUserTenantRequestRepository(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+        )
+
+    def build_reject_user_tenant_request_usecase(self) -> RejectUserTenantRequestUseCase:
+        return RejectUserTenantRequestUseCase(
+            LinkUserTenantRequestRepository(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+        )
 
 
 class AuthUseCaseFactory:
