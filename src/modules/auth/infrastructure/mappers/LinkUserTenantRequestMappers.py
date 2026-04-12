@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from src.modules.auth.domain.entities import LinkUserTenantRequest, LinkUserTenantRequestDetailed, UserToLinkUserTenantRequestList
+from src.modules.auth.domain.entities import LinkTenantRequestDetailed, LinkUserTenantRequest, LinkUserTenantRequestDetailed, TenantToLinkUserTenantRequestList, UserToLinkUserTenantRequestList
 from src.modules.auth.domain.enums.LinkUserTenantRequestStatus import (
     LinkUserTenantRequestStatus,
 )
@@ -28,7 +28,7 @@ class LinkUserTenantRequestMapper:
         )
 
     @staticmethod
-    def to_detailed_entity(model: LinkUserTenantRequestModel) -> LinkUserTenantRequestDetailed:
+    def to_user_detailed_entity(model: LinkUserTenantRequestModel) -> LinkUserTenantRequestDetailed:
         return LinkUserTenantRequestDetailed(
             id=UUID(str(model.id)),
             user=UserToLinkUserTenantRequestList(
@@ -36,6 +36,18 @@ class LinkUserTenantRequestMapper:
                 first_name=model.user.first_name,
                 last_name=model.user.last_name,
                 email=model.user.email,
+            ),
+            status=LinkUserTenantRequestStatus(model.status),
+            updated_at=model.updated_at,
+        )
+
+    @staticmethod
+    def to_tenant_detailed_entity(model: LinkUserTenantRequestModel) -> LinkTenantRequestDetailed:
+        return LinkTenantRequestDetailed(
+            id=UUID(str(model.id)),
+            tenant=TenantToLinkUserTenantRequestList(
+                id=UUID(str(model.tenant.id)),
+                name=model.tenant.name,
             ),
             status=LinkUserTenantRequestStatus(model.status),
             updated_at=model.updated_at,

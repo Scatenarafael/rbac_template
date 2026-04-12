@@ -22,6 +22,16 @@ class ListLinkUserTenantRequestUseCase:
         return await self.link_user_tenant_request_query.list_by_tenant_id(tenant_id)
 
 
+class ListLinkUserTenantRequestByUserUseCase:
+    def __init__(self, link_user_tenant_request_query: ILinkUserTenantRequestsQuery, rules: LinkUserTenantRequestsRules):
+        self.link_user_tenant_request_query = link_user_tenant_request_query
+        self.rules = rules
+
+    async def execute(self, authenticated_user_id: UUID):
+
+        return await self.link_user_tenant_request_query.find_pending_by_user(authenticated_user_id)
+
+
 class InviteUserToTenantUseCase:
     def __init__(self, link_user_tenant_request_repository: ILinkUserTenantRequestRepository, rules: LinkUserTenantRequestsRules):
         self.link_user_tenant_request_repository = link_user_tenant_request_repository

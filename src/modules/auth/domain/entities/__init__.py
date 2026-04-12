@@ -1,4 +1,4 @@
-from .LinkUserTenantRequest import LinkUserTenantRequest, LinkUserTenantRequestDetailed, UserToLinkUserTenantRequestList
+from .LinkUserTenantRequest import LinkTenantRequestDetailed, LinkUserTenantRequest, LinkUserTenantRequestDetailed, TenantToLinkUserTenantRequestList, UserToLinkUserTenantRequestList
 from .Permission import Permission
 from .RefreshToken import RefreshToken
 from .Role import Role
@@ -22,4 +22,6 @@ __all__ = [
     "LinkUserTenantRequestDetailed",
     "UserToLinkUserTenantRequestList",
     "RefreshToken",
+    "TenantToLinkUserTenantRequestList",
+    "LinkTenantRequestDetailed",
 ]

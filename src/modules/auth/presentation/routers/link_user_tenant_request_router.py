@@ -7,6 +7,7 @@ from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUse
 from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import (
     AproveUserTenantRequestUseCase,
     InviteUserToTenantUseCase,
+    ListLinkUserTenantRequestByUserUseCase,
     ListLinkUserTenantRequestUseCase,
     RejectUserTenantRequestUseCase,
     RequestTenantEntryUseCase,
@@ -17,6 +18,30 @@ from src.modules.auth.presentation.factories import DependenciesFactory
 router = APIRouter(tags=["link-user-tenant-requests"], prefix="/link-user-tenant-requests")
 
 settings = get_settings()
+
+
+@router.get("/")
+async def list_link_user_tenant_requests_by_user(
+    request: Request,
+    usecase: ListLinkUserTenantRequestByUserUseCase = Depends(DependenciesFactory().get_list_link_user_tenant_request_by_user_usecase),
+    get_user_id_usecase: GetLoggedUserIdUseCase = Depends(DependenciesFactory().get_logged_user_id_usecase),
+):
+
+    access_token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
+    if not access_token:
+        raise InvalidCredentials("Access token not found")
+
+    user_id = await get_user_id_usecase.execute(access_token)
+
+    if not user_id:
+        raise InvalidCredentials("Access token invalid or expired")
+
+    try:
+        authenticated_user_id = UUID(user_id)
+    except (TypeError, ValueError) as exc:
+        raise InvalidCredentials("Authenticated user identifier is invalid") from exc
+
+    return await usecase.execute(authenticated_user_id)
 
 
 @router.get("/{tenant_id}")

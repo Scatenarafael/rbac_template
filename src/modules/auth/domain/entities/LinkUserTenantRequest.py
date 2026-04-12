@@ -23,6 +23,12 @@ class UserToLinkUserTenantRequestList:
 
 
 @dataclass(slots=True, kw_only=True)
+class TenantToLinkUserTenantRequestList:
+    id: UUID
+    name: str
+
+
+@dataclass(slots=True, kw_only=True)
 class LinkUserTenantRequest:
     id: UUID = field(default_factory=new_uuid)
     fk_tenant_id: UUID
@@ -55,5 +61,13 @@ class LinkUserTenantRequest:
 class LinkUserTenantRequestDetailed:
     id: UUID = field(default_factory=new_uuid)
     user: UserToLinkUserTenantRequestList
+    status: LinkUserTenantRequestStatus
+    updated_at: datetime = field(default_factory=utcnow)
+
+
+@dataclass(slots=True, kw_only=True)
+class LinkTenantRequestDetailed:
+    id: UUID = field(default_factory=new_uuid)
+    tenant: TenantToLinkUserTenantRequestList
     status: LinkUserTenantRequestStatus
     updated_at: datetime = field(default_factory=utcnow)

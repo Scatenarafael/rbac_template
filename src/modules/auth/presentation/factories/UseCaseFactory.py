@@ -8,6 +8,7 @@ from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUse
 from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import (
     AproveUserTenantRequestUseCase,
     InviteUserToTenantUseCase,
+    ListLinkUserTenantRequestByUserUseCase,
     ListLinkUserTenantRequestUseCase,
     RejectUserTenantRequestUseCase,
     RequestTenantEntryUseCase,
@@ -72,6 +73,11 @@ class LinkUserTenantRequestUseCaseFactory:
     def build_reject_user_tenant_request_usecase(self) -> RejectUserTenantRequestUseCase:
         return RejectUserTenantRequestUseCase(
             LinkUserTenantRequestRepository(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+        )
+
+    def build_list_link_user_tenant_request_by_user_usecase(self) -> ListLinkUserTenantRequestByUserUseCase:
+        return ListLinkUserTenantRequestByUserUseCase(
+            LinkUserTenantRequestsQuery(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
         )
 
 
