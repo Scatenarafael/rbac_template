@@ -62,7 +62,11 @@ class LinkUserTenantRequestUseCaseFactory:
 
     def build_approve_user_tenant_request_usecase(self) -> AproveUserTenantRequestUseCase:
         return AproveUserTenantRequestUseCase(
-            LinkUserTenantRequestRepository(self.session), LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session))
+            LinkUserTenantRequestRepository(self.session),
+            UserTenantRepository(self.session),
+            UserTenantRoleRepository(self.session),
+            RolesQuery(self.session),
+            LinkUserTenantRequestsRules(UsersQuery(self.session), UserTenantRolesQuery(self.session), LinkUserTenantRequestsQuery(self.session)),
         )
 
     def build_reject_user_tenant_request_usecase(self) -> RejectUserTenantRequestUseCase:

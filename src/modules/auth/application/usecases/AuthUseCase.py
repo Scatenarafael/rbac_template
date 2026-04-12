@@ -51,7 +51,7 @@ class RefreshTokenUseCase(Generic[TRequest, TResponse]):
         # parse cookie (formato jti:raw)
         try:
             jti, raw = cookie.split(":", 1)
-        except Exception as exc:
+        except ValueError as exc:
             raise RefreshInvalid("Formato do cookie de refresh invalido") from exc
 
         refresh_token_data = await self.handle_token_service.rotate_refresh(raw, jti)

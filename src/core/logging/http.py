@@ -57,6 +57,7 @@ class RequestContextMiddleware:
             await self.app(scope, receive, send_wrapper)
         finally:
             duration_ms = round((perf_counter() - start_time) * 1000, 2)
+            user_id = scope.get("state", {}).get("user_id")
             http_logger.info(
                 "HTTP request completed",
                 method=scope.get("method"),
@@ -66,6 +67,7 @@ class RequestContextMiddleware:
                 client_ip=_get_client_ip(scope, headers),
                 status_code=status_code,
                 duration_ms=duration_ms,
+                user_id=str(user_id) if user_id else None,
             )
             reset_user_id(user_token)
             reset_request_id(request_token)

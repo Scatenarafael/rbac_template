@@ -42,10 +42,17 @@ async def auth_cookies() -> dict[str, str]:
     return {"access_token": access_token}
 
 
-def perform_request(path: str, *, raise_app_exceptions: bool = True, headers: dict[str, str] | None = None):
+def perform_request(
+    path: str,
+    *,
+    raise_app_exceptions: bool = True,
+    headers: dict[str, str] | None = None,
+    authenticated: bool = True,
+):
     async def run():
         transport = httpx.ASGITransport(app=build_app(), raise_app_exceptions=raise_app_exceptions)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver", cookies=await auth_cookies()) as client:
+        cookies = await auth_cookies() if authenticated else {}
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver", cookies=cookies) as client:
             return await client.get(path, headers=headers)
 
     return asyncio.run(run())
@@ -56,6 +63,14 @@ def test_request_id_is_returned_on_success():
 
     assert response.status_code == 200
     assert response.headers["X-Request-ID"] == "req-123"
+
+
+def test_request_id_is_returned_on_auth_middleware_error():
+    response = perform_request("/health", headers={"X-Request-ID": "req-auth-middleware"}, authenticated=False)
+
+    assert response.status_code == 401
+    assert response.headers["X-Request-ID"] == "req-auth-middleware"
+    assert response.json()["error"]["request_id"] == "req-auth-middleware"
 
 
 def test_unhandled_errors_return_debuggable_payload():
@@ -91,5 +106,17 @@ def test_request_logs_include_status_code(caplog):
     assert any(
         record.getMessage() == "HTTP request completed"
         and getattr(record, "extra_fields", {}).get("status_code") == 404
+        for record in caplog.records
+    )
+
+
+def test_request_logs_include_authenticated_user_id(caplog):
+    caplog.set_level(logging.INFO)
+    response = perform_request("/health", headers={"X-Request-ID": "req-user-log"})
+
+    assert response.status_code == 200
+    assert any(
+        record.getMessage() == "HTTP request completed"
+        and getattr(record, "extra_fields", {}).get("user_id") == "11111111-1111-1111-1111-111111111111"
         for record in caplog.records
     )

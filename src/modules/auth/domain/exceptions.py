@@ -67,5 +67,9 @@ class TenantAlreadyExists(ConflictError):
     code = "tenant_already_exists"
 
 
+class LinkUserTenantRequestAlreadyPending(ConflictError):
+    code = "link_user_tenant_request_already_pending"
+
+
 class UserNotFound(NotFoundError):
     code = "user_not_found"

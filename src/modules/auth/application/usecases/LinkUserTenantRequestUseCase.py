@@ -71,20 +71,23 @@ class AproveUserTenantRequestUseCase:
         if not link:
             raise ForbiddenError("You cannot approve this tenant request!")
 
-        await self.link_user_tenant_request_repository.approve(link_user_tenant_request_id)
-
-        user_tenant = UserTenant(fk_user_id=link.fk_user_id, fk_tenant_id=link.fk_tenant_id)
-
         member_role = await self.role_query.find_by_name("member")
 
         if not member_role:
             raise ForbiddenError("You cannot approve this tenant request!")
 
-        user_tenant_role = UserTenantRole(fk_user_tenant_id=user_tenant.id, fk_role_id=member_role.id)
+        user_tenant = UserTenant(fk_user_id=link.fk_user_id, fk_tenant_id=link.fk_tenant_id)
 
-        await self.user_tenant_repository.create(user_tenant)
+        user_tenant_instance = await self.user_tenant_repository.create(user_tenant)
+
+        user_tenant_role = UserTenantRole(fk_user_tenant_id=user_tenant_instance.id, fk_role_id=member_role.id)
 
         await self.user_tenant_role_repository.create(user_tenant_role)
+
+        approved_link = await self.link_user_tenant_request_repository.approve(link_user_tenant_request_id)
+
+        if not approved_link:
+            raise ForbiddenError("You cannot approve this tenant request!")
 
 
 class RejectUserTenantRequestUseCase:

@@ -1,15 +1,14 @@
 from uuid import UUID
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 
-from src.modules.auth.domain.entities import LinkUserTenantRequest, UserTenant, UserTenantRole
+from src.modules.auth.domain.entities import LinkUserTenantRequest
 from src.modules.auth.domain.enums.LinkUserTenantRequestStatus import LinkUserTenantRequestStatus
+from src.modules.auth.domain.exceptions import LinkUserTenantRequestAlreadyPending
 from src.modules.auth.domain.interfaces.repositories.LinkUserTenantRequest import ILinkUserTenantRequestRepository
 from src.modules.auth.infrastructure.mappers.LinkUserTenantRequestMappers import LinkUserTenantRequestMapper
-from src.modules.auth.infrastructure.mappers.UserTenantMappers import UserTenantMapper
-from src.modules.auth.infrastructure.mappers.UserTenantRoleMappers import UserTenantRoleMapper
 from src.modules.auth.infrastructure.models import LinkUserTenantRequestModel
-from src.modules.auth.infrastructure.models.Role import RoleModel
 
 
 class LinkUserTenantRequestRepository(ILinkUserTenantRequestRepository):
@@ -17,8 +16,15 @@ class LinkUserTenantRequestRepository(ILinkUserTenantRequestRepository):
         link_user_tenant_request_model = LinkUserTenantRequestMapper.from_entity(data)
 
         self._session.add(link_user_tenant_request_model)
-        await self._session.commit()
-        await self._session.refresh(link_user_tenant_request_model)
+        try:
+            await self._session.commit()
+            await self._session.refresh(link_user_tenant_request_model)
+        except IntegrityError as exc:
+            await self._session.rollback()
+            if _is_pending_link_user_tenant_request_duplicate(exc):
+                raise LinkUserTenantRequestAlreadyPending("There is already a pending tenant request for this user!") from exc
+            raise
+
         return LinkUserTenantRequestMapper.to_entity(link_user_tenant_request_model)
 
     async def update(self, id: UUID, data: dict) -> LinkUserTenantRequest | None:
@@ -66,33 +72,14 @@ class LinkUserTenantRequestRepository(ILinkUserTenantRequestRepository):
     async def approve(self, id: UUID) -> LinkUserTenantRequest | None:
         select_stmt = select(LinkUserTenantRequestModel).where(LinkUserTenantRequestModel.id == id)  # type: ignore
 
-        select_member_role_stmt = select(RoleModel).where(RoleModel.name == "member")  # type: ignore
-
         result = await self._session.execute(select_stmt)
         link_user_tenant_request_model = result.scalar_one_or_none()
 
         if link_user_tenant_request_model is None:
             return None
 
-        user_tenant_model = UserTenantMapper.from_entity(
-            UserTenant(
-                fk_user_id=link_user_tenant_request_model.fk_user_id,
-                fk_tenant_id=link_user_tenant_request_model.fk_tenant_id,
-            )
-        )
-
-        if select_member_role_stmt is not None:
-            user_tenant_role_model = UserTenantRoleMapper.from_entity(
-                UserTenantRole(
-                    fk_user_tenant_id=user_tenant_model.id,
-                    fk_role_id=select_member_role_stmt.scalar_one().id,  # type: ignore
-                )
-            )
-            self._session.add(user_tenant_role_model)
-
         link_user_tenant_request_model.status = LinkUserTenantRequestStatus.APPROVED
 
-        self._session.add(user_tenant_model)
         self._session.add(link_user_tenant_request_model)
         await self._session.commit()
         await self._session.refresh(link_user_tenant_request_model)
@@ -114,3 +101,7 @@ class LinkUserTenantRequestRepository(ILinkUserTenantRequestRepository):
         await self._session.refresh(link_user_tenant_request_model)
 
         return LinkUserTenantRequestMapper.to_entity(link_user_tenant_request_model)
+
+
+def _is_pending_link_user_tenant_request_duplicate(exc: IntegrityError) -> bool:
+    return "uq_link_user_tenant_requests_tenant_user_status" in str(exc)

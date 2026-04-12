@@ -11,6 +11,7 @@ from src.modules.auth.domain.entities.Tenant import Tenant
 from src.modules.auth.domain.entities.User import User, UserWithTenantRoles
 from src.modules.auth.domain.entities.UserTenantRole import UserTenantRoleDetailed
 from src.modules.auth.domain.value_objects.Emails import Email
+from src.modules.auth.presentation.factories.DependenciesFactory import DependenciesFactory
 from src.modules.auth.presentation.factories.UseCaseFactory import AuthUseCaseFactory
 from src.modules.auth.presentation.routers.auth_router import (
     refresh_token,
@@ -152,6 +153,17 @@ def test_auth_router_dependency_factories_inject_same_session_into_queries_and_r
     assert refresh_token_service.refresh_tokens_query._session is session
     assert sign_out_token_service.refresh_token_repository._session is session
     assert sign_out_token_service.refresh_tokens_query._session is session
+
+
+def test_dependencies_factory_provider_uses_resolved_session():
+    session = object()
+
+    usecase = DependenciesFactory().get_sign_in_usecase(session=cast(Any, session))
+    token_service = cast(Any, usecase.handle_token_service)
+
+    assert usecase.users_query._session is session
+    assert token_service.refresh_token_repository._session is session
+    assert token_service.refresh_tokens_query._session is session
 
 
 def test_sign_in_router_delegates_to_usecase():

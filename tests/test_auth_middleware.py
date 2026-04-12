@@ -73,6 +73,29 @@ def test_auth_middleware_rejects_invalid_or_expired_access_token(monkeypatch):
     assert payload["error"]["message"] == "Access token invalid or expired"
 
 
+def test_auth_middleware_rejects_access_token_without_subject(monkeypatch):
+    middleware = AuthMiddleware(app=lambda scope, receive, send: None)
+    request = RequestStub("/tenants", cookies={"access_token": "token-without-sub"}, request_id="req-missing-sub")
+
+    async def fake_verify_access_token(_token: str):
+        return {}
+
+    async def call_next(_request):
+        raise AssertionError("call_next should not be reached when token subject is missing")
+
+    monkeypatch.setattr(
+        "src.modules.auth.presentation.middlewares.auth_middleware.HandleTokenService.verify_access_token",
+        staticmethod(fake_verify_access_token),
+    )
+
+    response = asyncio.run(middleware.dispatch(request, call_next))
+    payload = parse_response_body(response)
+
+    assert response.status_code == 401
+    assert response.headers["X-Request-ID"] == "req-missing-sub"
+    assert payload["error"]["message"] == "Access token invalid or expired"
+
+
 def test_auth_middleware_sets_authenticated_user_id_before_calling_next(monkeypatch):
     middleware = AuthMiddleware(app=lambda scope, receive, send: None)
     request = RequestStub("/tenants", cookies={"access_token": "valid-token"})

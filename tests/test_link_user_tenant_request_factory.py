@@ -1,5 +1,4 @@
 # pyright: reportArgumentType=false
-import pytest
 
 from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import (
     AproveUserTenantRequestUseCase,
@@ -44,11 +43,6 @@ def test_link_user_tenant_request_factory_builds_request_entry_usecase_with_same
     assert usecase.rules.link_user_tenant_request_query._session is session
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    reason="O factory atual não passa user_tenant_repository, user_tenant_role_repository e role_query para o use case de aprovação.",
-    strict=True,
-)
 def test_link_user_tenant_request_factory_builds_approve_usecase_with_same_session():
     session = object()
     usecase = LinkUserTenantRequestUseCaseFactory(session).build_approve_user_tenant_request_usecase()

@@ -11,8 +11,6 @@ from src.core.logging.config import configure_logging
 from src.core.logging.http import RequestContextMiddleware, register_exception_handlers
 from src.core.logging.logger import get_logger
 from src.modules.auth.presentation.middlewares.auth_middleware import AuthMiddleware
-from src.modules.auth.presentation.middlewares.request_id import RequestIdMiddleware
-from src.modules.auth.presentation.middlewares.request_logging import RequestLoggingMiddleware
 from src.modules.auth.presentation.routers import auth_router, link_user_tenant_request_router, tenant_router, users_router
 
 origins = [
@@ -53,7 +51,6 @@ def create_app() -> FastAPI:
     )
     # Production checklist validation should run on startup before serving requests.
 
-    app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -62,12 +59,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.add_middleware(RequestLoggingMiddleware)
-
     app.add_middleware(AuthMiddleware)
-
-    # Middleware (muito comum no mercado): request_id em toda request/response
-    app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(RequestContextMiddleware)
 
     register_exception_handlers(app)
 

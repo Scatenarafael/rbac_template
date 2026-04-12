@@ -38,6 +38,7 @@ class FakeLinkUserTenantRequestRepository:
 
     async def approve(self, id):
         self.approved_ids.append(id)
+        return LinkUserTenantRequest(fk_tenant_id=uuid4(), fk_user_id=uuid4())
 
     async def reject(self, id):
         self.rejected_ids.append(id)

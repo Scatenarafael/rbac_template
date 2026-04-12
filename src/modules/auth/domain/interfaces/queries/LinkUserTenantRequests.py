@@ -10,3 +10,7 @@ class ILinkUserTenantRequestsQuery(IQueryBase[LinkUserTenantRequest, UUID]):
     @abstractmethod
     async def list_by_tenant_id(self, tenant_id: UUID) -> Sequence[LinkUserTenantRequestDetailed]:
         pass
+
+    @abstractmethod
+    async def find_pending_by_tenant_and_user(self, tenant_id: UUID, user_id: UUID) -> LinkUserTenantRequest | None:
+        pass
