@@ -45,6 +45,7 @@ async def auth_cookies() -> dict[str, str]:
 def perform_request(
     path: str,
     *,
+    method: str = "GET",
     raise_app_exceptions: bool = True,
     headers: dict[str, str] | None = None,
     authenticated: bool = True,
@@ -53,7 +54,7 @@ def perform_request(
         transport = httpx.ASGITransport(app=build_app(), raise_app_exceptions=raise_app_exceptions)
         cookies = await auth_cookies() if authenticated else {}
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver", cookies=cookies) as client:
-            return await client.get(path, headers=headers)
+            return await client.request(method, path, headers=headers)
 
     return asyncio.run(run())
 
@@ -71,6 +72,38 @@ def test_request_id_is_returned_on_auth_middleware_error():
     assert response.status_code == 401
     assert response.headers["X-Request-ID"] == "req-auth-middleware"
     assert response.json()["error"]["request_id"] == "req-auth-middleware"
+
+
+def test_cors_headers_are_returned_on_auth_middleware_error():
+    origin = "http://localhost:5173"
+    response = perform_request(
+        "/health",
+        headers={"Origin": origin, "X-Request-ID": "req-cors-auth"},
+        authenticated=False,
+    )
+
+    assert response.status_code == 401
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.json()["error"]["message"] == "Access token not found"
+
+
+def test_cors_preflight_is_not_blocked_by_auth_middleware():
+    origin = "http://localhost:5173"
+    response = perform_request(
+        "/health",
+        method="OPTIONS",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "x-request-id",
+        },
+        authenticated=False,
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
 
 
 def test_unhandled_errors_return_debuggable_payload():

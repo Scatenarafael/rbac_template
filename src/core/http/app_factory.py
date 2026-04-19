@@ -16,6 +16,9 @@ from src.modules.auth.presentation.routers import auth_router, link_user_tenant_
 origins = [
     "http://localhost",
     "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
     "http://192.168.15.7:5173",
     "http://192.168.15.6:5173",
     "http://192.168.1.120:4173",
@@ -51,6 +54,9 @@ def create_app() -> FastAPI:
     )
     # Production checklist validation should run on startup before serving requests.
 
+    # Starlette wraps the last added middleware outermost; CORS must see auth errors and preflights.
+    app.add_middleware(AuthMiddleware)
+    app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -58,9 +64,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    app.add_middleware(AuthMiddleware)
-    app.add_middleware(RequestContextMiddleware)
 
     register_exception_handlers(app)
 
