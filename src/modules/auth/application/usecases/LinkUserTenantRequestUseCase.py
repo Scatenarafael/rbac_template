@@ -1,7 +1,9 @@
 from uuid import UUID
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult
 from src.modules.auth.application.rules.LinkUserTenantRequestsRules import LinkUserTenantRequestsRules
 from src.modules.auth.domain.entities import LinkUserTenantRequest, UserTenant, UserTenantRole
+from src.modules.auth.domain.entities.LinkUserTenantRequest import LinkTenantRequestDetailed, LinkUserTenantRequestDetailed
 from src.modules.auth.domain.exceptions import ForbiddenError
 from src.modules.auth.domain.interfaces.queries.LinkUserTenantRequests import ILinkUserTenantRequestsQuery
 from src.modules.auth.domain.interfaces.queries.Roles import IRolesQuery
@@ -15,11 +17,20 @@ class ListLinkUserTenantRequestUseCase:
         self.link_user_tenant_request_query = link_user_tenant_request_query
         self.rules = rules
 
-    async def execute(self, tenant_id: UUID, authenticated_user_id: UUID):
+    async def execute(
+        self,
+        tenant_id: UUID,
+        authenticated_user_id: UUID,
+        page: int | None = None,
+        per_page: int = DEFAULT_PER_PAGE,
+    ) -> ListResult[LinkUserTenantRequestDetailed]:
 
         await self.rules.validate_list_link_user_tenant_requests(tenant_id, authenticated_user_id)
 
-        return await self.link_user_tenant_request_query.list_by_tenant_id(tenant_id)
+        if page is None:
+            return await self.link_user_tenant_request_query.list_by_tenant_id(tenant_id)
+
+        return await self.link_user_tenant_request_query.list_by_tenant_id(tenant_id, page=page, per_page=per_page)
 
 
 class ListLinkUserTenantRequestByUserUseCase:
@@ -27,9 +38,17 @@ class ListLinkUserTenantRequestByUserUseCase:
         self.link_user_tenant_request_query = link_user_tenant_request_query
         self.rules = rules
 
-    async def execute(self, authenticated_user_id: UUID):
+    async def execute(
+        self,
+        authenticated_user_id: UUID,
+        page: int | None = None,
+        per_page: int = DEFAULT_PER_PAGE,
+    ) -> ListResult[LinkTenantRequestDetailed]:
 
-        return await self.link_user_tenant_request_query.find_pending_by_user(authenticated_user_id)
+        if page is None:
+            return await self.link_user_tenant_request_query.find_pending_by_user(authenticated_user_id)
+
+        return await self.link_user_tenant_request_query.find_pending_by_user(authenticated_user_id, page=page, per_page=per_page)
 
 
 class InviteUserToTenantUseCase:

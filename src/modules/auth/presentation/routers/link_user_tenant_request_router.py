@@ -1,8 +1,10 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.core.config.config import get_settings
+from src.core.pagination import DEFAULT_PER_PAGE
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase
 from src.modules.auth.application.usecases.LinkUserTenantRequestUseCase import (
     AproveUserTenantRequestUseCase,
@@ -23,6 +25,8 @@ settings = get_settings()
 @router.get("/")
 async def list_link_user_tenant_requests_by_user(
     request: Request,
+    page: Annotated[int | None, Query(ge=1)] = None,
+    per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
     usecase: ListLinkUserTenantRequestByUserUseCase = Depends(DependenciesFactory().get_list_link_user_tenant_request_by_user_usecase),
     get_user_id_usecase: GetLoggedUserIdUseCase = Depends(DependenciesFactory().get_logged_user_id_usecase),
 ):
@@ -41,13 +45,18 @@ async def list_link_user_tenant_requests_by_user(
     except (TypeError, ValueError) as exc:
         raise InvalidCredentials("Authenticated user identifier is invalid") from exc
 
-    return await usecase.execute(authenticated_user_id)
+    if page is None:
+        return await usecase.execute(authenticated_user_id)
+
+    return await usecase.execute(authenticated_user_id, page=page, per_page=per_page)
 
 
 @router.get("/{tenant_id}")
 async def list_link_user_tenant_requests_by_tenant_id(
     request: Request,
     tenant_id: UUID,
+    page: Annotated[int | None, Query(ge=1)] = None,
+    per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
     usecase: ListLinkUserTenantRequestUseCase = Depends(DependenciesFactory().get_list_link_user_tenant_request_usecase),
     get_user_id_usecase: GetLoggedUserIdUseCase = Depends(DependenciesFactory().get_logged_user_id_usecase),
 ):
@@ -66,7 +75,10 @@ async def list_link_user_tenant_requests_by_tenant_id(
     except (TypeError, ValueError) as exc:
         raise InvalidCredentials("Authenticated user identifier is invalid") from exc
 
-    return await usecase.execute(tenant_id, authenticated_user_id)
+    if page is None:
+        return await usecase.execute(tenant_id, authenticated_user_id)
+
+    return await usecase.execute(tenant_id, authenticated_user_id, page=page, per_page=per_page)
 
 
 @router.post("/{tenant_id}/invite/{requested_user_id}")

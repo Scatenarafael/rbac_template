@@ -3,6 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult, paginate_query
 from src.modules.auth.domain.entities import RefreshToken
 from src.modules.auth.domain.interfaces.queries.RefreshTokens import IRefreshTokensQuery
 from src.modules.auth.infrastructure.mappers.RefreshTokenMappers import RefreshTokenMapper
@@ -10,11 +11,9 @@ from src.modules.auth.infrastructure.models.RefreshToken import RefreshTokenMode
 
 
 class RefreshTokensQuery(IRefreshTokensQuery):
-    async def list(self) -> list[RefreshToken]:
+    async def list(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[RefreshToken]:
         stmt = select(RefreshTokenModel)  # type: ignore[arg-type]
-        result = await self._session.execute(stmt)
-        refresh_tokens = result.scalars().all()
-        return [RefreshTokenMapper.to_entity(refresh_token) for refresh_token in refresh_tokens]
+        return await paginate_query(self._session, stmt, RefreshTokenMapper.to_entity, page, per_page)
 
     async def get_by_id(self, id: UUID) -> RefreshToken | None:
         stmt = select(RefreshTokenModel).where(RefreshTokenModel.id == id)  # type: ignore[arg-type]

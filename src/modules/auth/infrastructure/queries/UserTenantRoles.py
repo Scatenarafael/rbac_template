@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult, paginate_query
 from src.modules.auth.domain.entities import UserTenantRoleDetailed
 from src.modules.auth.domain.interfaces.queries.UserTenantRoles import IUserTenantRoleQuery
 from src.modules.auth.infrastructure.mappers.UserTenantRoleMappers import UserTenantRoleDetailedMapper
@@ -13,10 +14,9 @@ from src.modules.auth.infrastructure.models.UserTenantRole import UserTenantRole
 
 
 class UserTenantRolesQuery(IUserTenantRoleQuery):
-    async def list(self) -> Sequence[UserTenantRoleDetailed]:
+    async def list(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[UserTenantRoleDetailed]:
         stmt = select(UserTenantRoleModel).options(selectinload(UserTenantRoleModel.role))
-        result = await self._session.execute(stmt)
-        return [UserTenantRoleDetailedMapper.to_entity(model) for model in result.scalars().all()]
+        return await paginate_query(self._session, stmt, UserTenantRoleDetailedMapper.to_entity, page, per_page)
 
     async def get_by_id(self, id: UUID) -> UserTenantRoleDetailed | None:
         stmt = select(UserTenantRoleModel).options(selectinload(UserTenantRoleModel.role)).where(UserTenantRoleModel.id == id)  # type: ignore[arg-type]

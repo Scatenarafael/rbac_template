@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult, paginate_query
 from src.core.logging import get_logger
 from src.modules.auth.domain.entities import User, UserWithTenantRoles
 from src.modules.auth.domain.interfaces.queries.Users import IUsersQuery
@@ -17,11 +18,9 @@ logger = get_logger(__name__)
 
 
 class UsersQuery(IUsersQuery):
-    async def list(self) -> list[User]:
+    async def list(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[User]:
         stmt = select(UserModel)  # type: ignore[arg-type]
-        result = await self._session.execute(stmt)
-        users = result.scalars().all()
-        return [UserMapper.to_entity(user) for user in users]
+        return await paginate_query(self._session, stmt, UserMapper.to_entity, page, per_page)
 
     async def get_by_id(self, id: UUID) -> User | None:
         stmt = select(UserModel).where(UserModel.id == id)  # type: ignore[arg-type]

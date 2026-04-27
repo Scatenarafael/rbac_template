@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult
 from src.modules.auth.application.interfaces.services import IHashPasswordService
 from src.modules.auth.application.rules import RegisterUserRules
 from src.modules.auth.application.rules.UserRules import ChangePasswordRules, UpdateUserRules
@@ -39,8 +40,11 @@ class ListUserUseCase:
     def __init__(self, users_query: IUsersQuery):
         self.users_query = users_query
 
-    async def execute(self):
-        return await self.users_query.list()
+    async def execute(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[User]:
+        if page is None:
+            return await self.users_query.list()
+
+        return await self.users_query.list(page=page, per_page=per_page)
 
 
 class UpdateUserUseCase:

@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Sequence, TypeVar
+from typing import Generic, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult
 
 TEntity = TypeVar("TEntity")
 TId = TypeVar("TId")
@@ -12,7 +14,7 @@ class IQueryBase(ABC, Generic[TEntity, TId]):
         self._session = session
 
     @abstractmethod
-    async def list(self) -> Sequence[TEntity]:
+    async def list(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[TEntity]:
         pass
 
     @abstractmethod

@@ -1,8 +1,10 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.core.config.config import get_settings
+from src.core.pagination import DEFAULT_PER_PAGE
 from src.modules.auth.application.usecases.AuthUseCase import GetLoggedUserIdUseCase
 from src.modules.auth.application.usecases.TenantUseCase import CreateTenantUseCase, DeleteTenantUseCase, ListTenantsUseCase, UpdateTenantUseCase
 from src.modules.auth.domain.exceptions import InvalidCredentials
@@ -14,8 +16,15 @@ settings = get_settings()
 
 
 @router.get("/")
-async def list_tenants(usecase: ListTenantsUseCase = Depends(DependenciesFactory().get_list_tenants_usecase)):
-    return await usecase.execute()
+async def list_tenants(
+    page: Annotated[int | None, Query(ge=1)] = None,
+    per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
+    usecase: ListTenantsUseCase = Depends(DependenciesFactory().get_list_tenants_usecase),
+):
+    if page is None:
+        return await usecase.execute()
+
+    return await usecase.execute(page=page, per_page=per_page)
 
 
 @router.post("/")

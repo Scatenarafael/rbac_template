@@ -1,8 +1,9 @@
-from typing import Optional, Sequence
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult
 from src.modules.auth.application.rules import TenantRules
 from src.modules.auth.domain.entities import Tenant, User, UserTenant, UserTenantRole
 from src.modules.auth.domain.exceptions import ConfigurationError
@@ -71,8 +72,11 @@ class ListTenantsUseCase:
     def __init__(self, tenants_query: ITenantsQuery) -> None:
         self.tenants_query = tenants_query
 
-    async def execute(self) -> Sequence[Tenant]:
-        return await self.tenants_query.list()
+    async def execute(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[Tenant]:
+        if page is None:
+            return await self.tenants_query.list()
+
+        return await self.tenants_query.list(page=page, per_page=per_page)
 
 
 class UpdateTenantUseCase:

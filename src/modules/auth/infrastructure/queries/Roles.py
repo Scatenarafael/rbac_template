@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from src.core.pagination import DEFAULT_PER_PAGE, ListResult, paginate_query
 from src.modules.auth.domain.entities import Role
 from src.modules.auth.domain.interfaces.queries.Roles import IRolesQuery
 from src.modules.auth.infrastructure.mappers.RoleMappers import RoleMapper
@@ -9,11 +10,9 @@ from src.modules.auth.infrastructure.models.Role import RoleModel
 
 
 class RolesQuery(IRolesQuery):
-    async def list(self) -> list[Role]:
+    async def list(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[Role]:
         stmt = select(RoleModel)  # type: ignore[arg-type]
-        result = await self._session.execute(stmt)
-        roles = result.scalars().all()
-        return [RoleMapper.to_entity(role) for role in roles]
+        return await paginate_query(self._session, stmt, RoleMapper.to_entity, page, per_page)
 
     async def get_by_id(self, id: UUID) -> Role | None:
         stmt = select(RoleModel).where(RoleModel.id == id)  # type: ignore[arg-type]
