@@ -1,5 +1,5 @@
 from collections.abc import Callable, Sequence
-from typing import Generic, TypeVar, TypedDict
+from typing import Generic, TypedDict, TypeVar
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,7 +39,7 @@ async def paginate_query(
     return {
         "meta": {
             "perPage": per_page,
-            "pageIndex": page,
+            "pageIndex": page - 1,
         },
         "results": [mapper(model) for model in result.scalars().all()],
     }

@@ -24,7 +24,7 @@ async def create(payload: RegisterUserRequestBody, create_usecase: RegisterUserU
 
 @router.get("/", response_model=list[RegisterUserResponseBody] | PaginatedResponseBody[RegisterUserResponseBody])
 async def list_users(
-    page: Annotated[int | None, Query(ge=1)] = None,
+    page: Annotated[int | None, Query(ge=0)] = None,
     per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
     list_usecase: ListUserUseCase = Depends(DependenciesFactory().get_list_user_usecase),
 ):

@@ -89,17 +89,17 @@ def test_paginate_query_without_page_returns_raw_list():
     assert session.scalar_calls == []
 
 
-def test_paginate_query_with_page_returns_meta_and_results():
+def test_paginate_query_with_page_index_returns_meta_and_results():
     items = [1, 2]
     session = FakeSession(items=items)
     stmt = select(table("items", column("id")))
 
-    result = asyncio.run(paginate_query(cast(AsyncSession, session), stmt, lambda item: item * 2, page=2))
+    result = asyncio.run(paginate_query(cast(AsyncSession, session), stmt, lambda item: item * 2, page=0))
 
     assert result == {
         "meta": {
             "perPage": DEFAULT_PER_PAGE,
-            "pageIndex": 2,
+            "pageIndex": 0,
         },
         "results": [2, 4],
     }
@@ -112,12 +112,12 @@ def test_paginate_query_with_custom_per_page_returns_meta_and_results():
     session = FakeSession(items=items)
     stmt = select(table("items", column("id")))
 
-    result = asyncio.run(paginate_query(cast(AsyncSession, session), stmt, lambda item: item * 2, page=2, per_page=5))
+    result = asyncio.run(paginate_query(cast(AsyncSession, session), stmt, lambda item: item * 2, page=0, per_page=5))
 
     assert result == {
         "meta": {
             "perPage": 5,
-            "pageIndex": 2,
+            "pageIndex": 0,
         },
         "results": [2, 4],
     }
@@ -130,19 +130,19 @@ def test_list_user_usecase_passes_page_to_query_when_received():
     users_query = FakeUsersQuery(result=users)
     usecase = ListUserUseCase(cast(IUsersQuery, users_query))
 
-    result = asyncio.run(usecase.execute(page=3, per_page=10))
+    result = asyncio.run(usecase.execute(page=0, per_page=10))
 
     assert result == users
-    assert users_query.calls == [(3, 10)]
+    assert users_query.calls == [(0, 10)]
 
 
 def test_list_tenants_router_passes_page_to_usecase_when_received():
     usecase = FakeListTenantsUseCase()
 
-    result = asyncio.run(list_tenants(page=2, per_page=15, usecase=cast(ListTenantsUseCase, usecase)))
+    result = asyncio.run(list_tenants(page=0, per_page=15, usecase=cast(ListTenantsUseCase, usecase)))
 
-    assert result == {"page": 2, "per_page": 15}
-    assert usecase.calls == [(2, 15)]
+    assert result == {"page": 0, "per_page": 15}
+    assert usecase.calls == [(0, 15)]
 
 
 def test_find_pending_by_tenant_and_user_returns_paginated_result_when_page_is_received():
@@ -157,12 +157,12 @@ def test_find_pending_by_tenant_and_user_returns_paginated_result_when_page_is_r
     session = FakeSession(items=[model])
     query = LinkUserTenantRequestsQuery(cast(AsyncSession, session))
 
-    result = asyncio.run(query.find_pending_by_tenant_and_user(tenant_id, user_id, page=1))
+    result = asyncio.run(query.find_pending_by_tenant_and_user(tenant_id, user_id, page=0))
 
     assert isinstance(result, dict)
     assert result["meta"] == {
         "perPage": DEFAULT_PER_PAGE,
-        "pageIndex": 1,
+        "pageIndex": 0,
     }
     assert len(result["results"]) == 1
     assert result["results"][0].id == model.id

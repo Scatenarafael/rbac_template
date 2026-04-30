@@ -25,7 +25,7 @@ settings = get_settings()
 @router.get("/")
 async def list_link_user_tenant_requests_by_user(
     request: Request,
-    page: Annotated[int | None, Query(ge=1)] = None,
+    page: Annotated[int | None, Query(ge=0)] = None,
     per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
     usecase: ListLinkUserTenantRequestByUserUseCase = Depends(DependenciesFactory().get_list_link_user_tenant_request_by_user_usecase),
     get_user_id_usecase: GetLoggedUserIdUseCase = Depends(DependenciesFactory().get_logged_user_id_usecase),
@@ -55,7 +55,7 @@ async def list_link_user_tenant_requests_by_user(
 async def list_link_user_tenant_requests_by_tenant_id(
     request: Request,
     tenant_id: UUID,
-    page: Annotated[int | None, Query(ge=1)] = None,
+    page: Annotated[int | None, Query(ge=0)] = None,
     per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
     usecase: ListLinkUserTenantRequestUseCase = Depends(DependenciesFactory().get_list_link_user_tenant_request_usecase),
     get_user_id_usecase: GetLoggedUserIdUseCase = Depends(DependenciesFactory().get_logged_user_id_usecase),

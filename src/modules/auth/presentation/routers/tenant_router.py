@@ -17,7 +17,7 @@ settings = get_settings()
 
 @router.get("/")
 async def list_tenants(
-    page: Annotated[int | None, Query(ge=1)] = None,
+    page: Annotated[int | None, Query(ge=0)] = None,
     per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
     usecase: ListTenantsUseCase = Depends(DependenciesFactory().get_list_tenants_usecase),
 ):
