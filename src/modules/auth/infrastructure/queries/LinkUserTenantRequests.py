@@ -36,12 +36,10 @@ class LinkUserTenantRequestsQuery(ILinkUserTenantRequestsQuery):
         return await paginate_query(self._session, stmt, LinkUserTenantRequestMapper.to_user_detailed_entity, page, per_page)
 
     @overload
-    async def find_pending_by_tenant_and_user(self, tenant_id: UUID, user_id: UUID, page: None = None) -> LinkUserTenantRequest | None:
-        ...
+    async def find_pending_by_tenant_and_user(self, tenant_id: UUID, user_id: UUID, page: None = None) -> LinkUserTenantRequest | None: ...
 
     @overload
-    async def find_pending_by_tenant_and_user(self, tenant_id: UUID, user_id: UUID, page: int, per_page: int = DEFAULT_PER_PAGE) -> ListResult[LinkUserTenantRequest]:
-        ...
+    async def find_pending_by_tenant_and_user(self, tenant_id: UUID, user_id: UUID, page: int, per_page: int = DEFAULT_PER_PAGE) -> ListResult[LinkUserTenantRequest]: ...
 
     async def find_pending_by_tenant_and_user(
         self,
@@ -73,7 +71,6 @@ class LinkUserTenantRequestsQuery(ILinkUserTenantRequestsQuery):
             .options(selectinload(cast(QueryableAttribute[TenantModel], LinkUserTenantRequestModel.tenant)))
             .where(
                 col(LinkUserTenantRequestModel.fk_user_id) == user_id,
-                col(LinkUserTenantRequestModel.status) == LinkUserTenantRequestStatus.PENDING,
             )
         )
         return await paginate_query(self._session, stmt, LinkUserTenantRequestMapper.to_tenant_detailed_entity, page, per_page)
