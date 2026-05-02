@@ -62,9 +62,9 @@ class FakeListTenantsUseCase:
     def __init__(self):
         self.calls = []
 
-    async def execute(self, page=None, per_page=DEFAULT_PER_PAGE):
-        self.calls.append((page, per_page))
-        return {"page": page, "per_page": per_page}
+    async def execute(self, page=None, per_page=DEFAULT_PER_PAGE, search=None):
+        self.calls.append((page, per_page, search))
+        return {"page": page, "per_page": per_page, "search": search}
 
 
 def make_user(email: str) -> User:
@@ -105,6 +105,7 @@ def test_paginate_query_with_page_index_returns_meta_and_results():
     }
     assert session.scalar_calls == []
     assert len(session.execute_calls) == 1
+    assert session.execute_calls[0]._offset_clause.value == 0
 
 
 def test_paginate_query_with_custom_per_page_returns_meta_and_results():
@@ -139,10 +140,19 @@ def test_list_user_usecase_passes_page_to_query_when_received():
 def test_list_tenants_router_passes_page_to_usecase_when_received():
     usecase = FakeListTenantsUseCase()
 
-    result = asyncio.run(list_tenants(page=0, per_page=15, usecase=cast(ListTenantsUseCase, usecase)))
+    result = asyncio.run(list_tenants(page=0, per_page=15, search=None, usecase=cast(ListTenantsUseCase, usecase)))
 
-    assert result == {"page": 0, "per_page": 15}
-    assert usecase.calls == [(0, 15)]
+    assert result == {"page": 0, "per_page": 15, "search": None}
+    assert usecase.calls == [(0, 15, None)]
+
+
+def test_list_tenants_router_passes_search_to_usecase_when_received():
+    usecase = FakeListTenantsUseCase()
+
+    result = asyncio.run(list_tenants(page=0, per_page=10, search="acme", usecase=cast(ListTenantsUseCase, usecase)))
+
+    assert result == {"page": 0, "per_page": 10, "search": "acme"}
+    assert usecase.calls == [(0, 10, "acme")]
 
 
 def test_find_pending_by_tenant_and_user_returns_paginated_result_when_page_is_received():

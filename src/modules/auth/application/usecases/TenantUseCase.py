@@ -72,11 +72,11 @@ class ListTenantsUseCase:
     def __init__(self, tenants_query: ITenantsQuery) -> None:
         self.tenants_query = tenants_query
 
-    async def execute(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE) -> ListResult[Tenant]:
+    async def execute(self, page: int | None = None, per_page: int = DEFAULT_PER_PAGE, search: str | None = None) -> ListResult[Tenant]:
         if page is None:
-            return await self.tenants_query.list()
+            return await self.tenants_query.list(search=search)
 
-        return await self.tenants_query.list(page=page, per_page=per_page)
+        return await self.tenants_query.list(page=page, per_page=per_page, search=search)
 
 
 class UpdateTenantUseCase:

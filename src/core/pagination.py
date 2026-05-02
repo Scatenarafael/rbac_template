@@ -34,12 +34,12 @@ async def paginate_query(
         result = await session.execute(stmt)
         return [mapper(model) for model in result.scalars().all()]
 
-    result = await session.execute(stmt.limit(per_page).offset((page - 1) * per_page))
+    result = await session.execute(stmt.limit(per_page).offset(page * per_page))
 
     return {
         "meta": {
             "perPage": per_page,
-            "pageIndex": page - 1,
+            "pageIndex": page,
         },
         "results": [mapper(model) for model in result.scalars().all()],
     }

@@ -19,12 +19,13 @@ settings = get_settings()
 async def list_tenants(
     page: Annotated[int | None, Query(ge=0)] = None,
     per_page: Annotated[int, Query(ge=1)] = DEFAULT_PER_PAGE,
+    search: Annotated[str | None, Query(max_length=120)] = None,
     usecase: ListTenantsUseCase = Depends(DependenciesFactory().get_list_tenants_usecase),
 ):
     if page is None:
-        return await usecase.execute()
+        return await usecase.execute(search=search)
 
-    return await usecase.execute(page=page, per_page=per_page)
+    return await usecase.execute(page=page, per_page=per_page, search=search)
 
 
 @router.post("/")
